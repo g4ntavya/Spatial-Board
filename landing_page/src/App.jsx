@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
+import { Analytics } from "@vercel/analytics/react";
 import Notice from './components/Notice';
 import Features from './components/Features';
 import Showcase from './components/Showcase';
@@ -11,7 +12,6 @@ import TechStack from './components/TechStack';
 import Architecture from './components/Architecture';
 import Footer from './components/Footer';
 import './App.css';
-import { Analytics } from "@vercel/analytics/react"
 
 gsap.registerPlugin(ScrollTrigger);
 
