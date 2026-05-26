@@ -1,0 +1,54 @@
+.DS_Store
+
+.build/
+DerivedData/
+
+.env
+WhiteBoARd.xcodeproj/project.xcworkspace/xcuserdata/
+WhiteBoARd.xcodeproj/xcuserdata/
+*.xcuserstate
+
+# Python virtual environments
+.venv/
+.tmp_venv/
+venv/
+ENV/
+.env/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Jupyter and VSCode
+.ipynb_checkpoints/
+.vscode/
+build_log.txt
+build_output.txt
+sentences.txt
+train/
+
+# Data
+data/
+strokes.npy
+result.txt
+*.h5
+*.npz
+*.pkl
+
+# Training artifacts
+train/checkpoints/
+train/viz_output/
+*.pt
+*.mlpackage
+*.mlmodel
+
+# Pipenv
+Pipfile.lock
+
+# Misc
+*.log
+*.tmp
+*.bak
+
+# Ignore test output
+out_simple.txt
