@@ -1,0 +1,91 @@
+/* ═══════════════════════════════════════════════════════════
+   FOOTER — Minimal, purposeful
+   ═══════════════════════════════════════════════════════════ */
+
+.footer {
+  background: var(--color-bg-deep);
+  padding: 0 0 var(--space-lg);
+}
+
+.footer-rule {
+  height: 1px;
+  background: var(--color-red);
+  margin-bottom: var(--space-xl);
+  transform-origin: left center;
+}
+
+.footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+/* ── Brand ── */
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.footer-cursive {
+  font-family: var(--font-arizonia);
+  font-size: 1.6rem;
+  color: var(--color-cream);
+  line-height: 1.2;
+}
+
+.footer-logo {
+  font-family: var(--font-impact);
+  font-size: 2.8rem;
+  color: var(--color-red);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ── Nav ── */
+.footer-nav {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.footer-nav-link {
+  font-family: var(--font-helvetica);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--color-white-dim);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: color var(--transition-fast);
+}
+
+.footer-nav-link:hover {
+  color: var(--color-red);
+}
+
+/* ── Colophon ── */
+.footer-colophon {
+  font-family: var(--font-helvetica);
+  font-size: 0.72rem;
+  font-weight: 300;
+  color: var(--color-gray);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.footer-x-link {
+  color: var(--color-gray);
+  transition: color var(--transition-fast);
+}
+
+.footer-x-link:hover {
+  color: var(--color-red);
+}
+
+.footer-sep {
+  opacity: 0.4;
+}

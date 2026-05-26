@@ -1,0 +1,97 @@
+/* ═══════════════════════════════════════════════════════════
+   NOTICE — Editorial two-column layout
+   Eyebrow question on left, explanation + CTAs on right
+   ═══════════════════════════════════════════════════════════ */
+
+.notice {
+  background: var(--color-bg);
+  padding: var(--space-2xl) 0;
+}
+
+/* Animated top rule */
+.notice-rule {
+  height: 1px;
+  background: var(--color-red);
+  margin-bottom: var(--space-xl);
+  transform-origin: left center;
+}
+
+.notice-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.notice-eyebrow {
+  font-family: var(--font-helvetica);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-red);
+  display: block;
+  padding-top: 0.25rem;
+}
+
+.notice-statement {
+  font-family: var(--font-helvetica);
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--color-cream);
+  margin-bottom: 2.5rem;
+  max-width: 640px;
+}
+
+.notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.notice-link {
+  font-family: var(--font-helvetica);
+  font-size: 0.9rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all var(--transition-normal);
+}
+
+.notice-link--primary {
+  color: var(--color-white);
+  font-weight: 500;
+  padding: 0.85rem 2rem;
+  background: var(--color-red);
+  border-radius: var(--radius-full);
+}
+
+.notice-link--primary:hover {
+  background: var(--color-red-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--color-red-glow);
+}
+
+.notice-link-icon {
+  font-size: 0.7rem;
+}
+
+.notice-link--secondary {
+  color: var(--color-cream-dim);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.notice-link--secondary:hover {
+  color: var(--color-cream);
+}
+
+@media (max-width: 768px) {
+  .notice-layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+}

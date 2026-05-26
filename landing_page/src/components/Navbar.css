@@ -1,0 +1,32 @@
+/* ═══════════════════════════════════════════════════════════
+   NAVBAR — Static top bar, name left, year right
+   ═══════════════════════════════════════════════════════════ */
+
+.navbar {
+  position: relative;          /* NOT fixed — scrolls with page */
+  z-index: 100;
+  padding: 2.5rem 0 0;
+  background: var(--color-bg-deep);
+}
+
+.navbar-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.navbar-name {
+  font-family: var(--font-helvetica);
+  font-weight: 300;
+  font-size: 1.25rem;
+  letter-spacing: 0.06em;
+  color: var(--color-cream);
+}
+
+.navbar-year {
+  font-family: var(--font-helvetica);
+  font-weight: 300;
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  color: var(--color-red);
+}

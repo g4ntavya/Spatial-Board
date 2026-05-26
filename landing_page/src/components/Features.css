@@ -1,0 +1,95 @@
+/* ═══════════════════════════════════════════════════════════
+   FEATURES — Editorial list layout
+   Number | Name | Description — horizontal rows with rules
+   ═══════════════════════════════════════════════════════════ */
+
+.features {
+  background: var(--color-bg);
+  padding: var(--space-2xl) 0;
+}
+
+.features-heading {
+  margin-bottom: var(--space-xl);
+}
+
+.features-eyebrow {
+  display: block;
+  font-family: var(--font-helvetica);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-red);
+  margin-bottom: 1.25rem;
+}
+
+.features-title {
+  font-family: var(--font-helvetica);
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  font-weight: 100;
+  line-height: 1.15;
+  color: var(--color-white);
+  letter-spacing: -0.02em;
+  max-width: 700px;
+}
+
+/* ── Row List ── */
+.features-list {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.feature-row {
+  display: grid;
+  grid-template-columns: 60px 200px 1fr;
+  gap: 2rem;
+  align-items: baseline;
+  padding: 2rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background var(--transition-fast);
+}
+
+.feature-row:hover {
+  background: rgba(229, 34, 34, 0.03);
+}
+
+.feature-num {
+  font-family: var(--font-helvetica);
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--color-red);
+  letter-spacing: 0.05em;
+}
+
+.feature-name {
+  font-family: var(--font-helvetica);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--color-white);
+  letter-spacing: -0.01em;
+}
+
+.feature-desc {
+  font-family: var(--font-helvetica);
+  font-size: 0.9rem;
+  font-weight: 300;
+  color: var(--color-white-dim);
+  line-height: 1.65;
+  max-width: 520px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .feature-row {
+    grid-template-columns: 40px 1fr;
+    gap: 1rem 1.25rem;
+  }
+
+  .feature-name {
+    grid-column: 2;
+  }
+
+  .feature-desc {
+    grid-column: 1 / -1;
+    padding-left: 0;
+  }
+}

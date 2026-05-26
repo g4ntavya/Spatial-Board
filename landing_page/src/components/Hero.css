@@ -1,0 +1,156 @@
+/* ═══════════════════════════════════════════════════════════
+   HERO — Full-viewport title with AR icon overlay + info card
+   ═══════════════════════════════════════════════════════════ */
+
+.hero {
+  position: relative;
+  min-height: calc(100vh - 4rem);   /* subtract navbar height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--color-bg-deep);
+  overflow: hidden;
+  padding: 2rem 0 2rem;
+}
+
+.hero-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3rem;
+  flex: 1;
+}
+
+/* ── Left: Title Block ── */
+.hero-left {
+  position: relative;
+  flex: 1;
+}
+
+.hero-cursive {
+  display: block;
+  font-family: var(--font-arizonia);
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  color: var(--color-cream);
+  margin-bottom: -1.5rem;
+  margin-left: 0.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-title {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-title-line {
+  font-family: var(--font-impact);
+  font-size: clamp(6rem, 14vw, 14rem);
+  line-height: 0.9;
+  color: var(--color-red);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+/* AR icon — now bright and visible, cream-tinted */
+.hero-ar-image {
+  position: absolute;
+  right: -2%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(280px, 32vw, 480px);
+  opacity: 0.55;
+  z-index: 1;
+  pointer-events: none;
+  filter: brightness(1.1) saturate(0.1) contrast(0.85);
+  mix-blend-mode: screen;
+}
+
+/* ── Right: Info Card ── */
+.hero-card {
+  width: clamp(280px, 22vw, 340px);
+  background: var(--color-red);
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.hero-card-text {
+  font-family: var(--font-helvetica);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-bg-deep);
+  text-align: justify;
+}
+
+.hero-card-divider {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1rem 0;
+}
+
+.hero-card-label {
+  font-family: var(--font-helvetica);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--color-bg-deep);
+  text-transform: uppercase;
+}
+
+/* ── Footer Handle ── */
+.hero-footer {
+  padding-top: 2rem;
+  padding-bottom: 1rem;
+}
+
+.hero-handle {
+  font-family: var(--font-helvetica);
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  color: var(--color-cream-dim);
+  text-transform: uppercase;
+}
+
+/* ── Responsive ── */
+@media (max-width: 968px) {
+  .hero {
+    min-height: auto;
+    padding: 4rem 0 2rem;
+  }
+
+  .hero-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .hero-left {
+    width: 100%;
+  }
+
+  .hero-cursive {
+    margin-left: 0;
+  }
+
+  .hero-title-line {
+    font-size: clamp(4rem, 18vw, 10rem);
+  }
+
+  .hero-ar-image {
+    right: 50%;
+    transform: translate(50%, -50%);
+    width: 60%;
+    opacity: 0.35;
+  }
+
+  .hero-card {
+    width: 100%;
+    max-width: 400px;
+  }
+}
