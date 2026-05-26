@@ -11,7 +11,7 @@ import TechStack from './components/TechStack';
 import Architecture from './components/Architecture';
 import Footer from './components/Footer';
 import './App.css';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react"
 
 gsap.registerPlugin(ScrollTrigger);
 
