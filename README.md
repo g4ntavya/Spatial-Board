@@ -4,7 +4,7 @@ A spatial AR notetaking app for iPhone with LiDAR that lets you draw, organize, 
 
 ## Demo Video
 
-[![SpatialBoard Demo](https://img.youtube.com/vi/NDZyi6bChMY?si=RhxfOfzIjXrwl9xs/maxresdefault.jpg)](https://youtu.be/NDZyi6bChMY?si=RhxfOfzIjXrwl9xs)
+[![SpatialBoard Demo](https://img.youtube.com/vi/NDZyi6bChMY/maxresdefault.jpg)](https://youtu.be/NDZyi6bChMY)
 
 ## Screenshots
 
