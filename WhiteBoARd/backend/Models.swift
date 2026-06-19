@@ -604,6 +604,9 @@ final class AppState {
     var showSpacePicker: Bool = false
     /// True while the fade-out/fade-in transition is running
     var isSpaceTransitioning: Bool = false
+
+    /// Transient toast shown after a manual "Sync now" (nil = hidden)
+    var lastSyncMessage: String?
     
     // MARK: - Folder Sheet State
     

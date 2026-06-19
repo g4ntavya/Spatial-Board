@@ -59,7 +59,7 @@ final class SyncService {
         }
         Task {
             let result = await performSync(context: context, live: true)
-            if #available(iOS 16.1, *) {
+            if #available(iOS 16.2, *) {
                 await LiveActivityManager.shared.finish(success: result.ok, count: result.noteCount, message: result.message)
             }
             if bgTask != .invalid { UIApplication.shared.endBackgroundTask(bgTask) }
@@ -102,7 +102,7 @@ final class SyncService {
                 return SyncResult(ok: true, message: "Nothing to sync", noteCount: 0)
             }
 
-            if live, #available(iOS 16.1, *) {
+            if live, #available(iOS 16.2, *) {
                 LiveActivityManager.shared.start(total: strokeDTOs.count)
             }
 
@@ -128,6 +128,7 @@ final class SyncService {
             if code == 200 {
                 let r = try? JSONDecoder().decode(SyncAck.self, from: data)
                 let n = r?.noteClusters ?? 0
+                UserDefaults.standard.set(strokes.count, forKey: Self.syncedCountKey)
                 print("[Sync] 200 — \(strokeDTOs.count) strokes, \(n) notes")
                 return SyncResult(ok: true, message: n > 0 ? "Synced \(n) note\(n == 1 ? "" : "s")" : "Synced", noteCount: n)
             } else {

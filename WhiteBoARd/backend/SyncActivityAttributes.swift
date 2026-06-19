@@ -8,14 +8,14 @@ import Foundation
 import ActivityKit
 
 struct SyncActivityAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
+    public struct ContentState: Codable, Hashable, Sendable {
         var phase: Phase
         var uploaded: Int
         var total: Int
         var message: String
     }
 
-    enum Phase: String, Codable, Hashable {
+    enum Phase: String, Codable, Hashable, Sendable {
         case uploading
         case processing
         case done

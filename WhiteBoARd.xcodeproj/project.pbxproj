@@ -6,11 +6,58 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9750F5032FE5B5140071EE09 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9750F5022FE5B5140071EE09 /* WidgetKit.framework */; };
+		9750F5052FE5B5140071EE09 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9750F5042FE5B5140071EE09 /* SwiftUI.framework */; };
+		9750F5162FE5B5160071EE09 /* SpatialBoardWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9750F5002FE5B5140071EE09 /* SpatialBoardWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9750F5142FE5B5160071EE09 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000F8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9750F4FF2FE5B5140071EE09;
+			remoteInfo = SpatialBoardWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9750F51B2FE5B5160071EE09 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				9750F5162FE5B5160071EE09 /* SpatialBoardWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		9750F5002FE5B5140071EE09 /* SpatialBoardWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SpatialBoardWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		9750F5022FE5B5140071EE09 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		9750F5042FE5B5140071EE09 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		A1000001 /* WhiteBoARd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WhiteBoARd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9750F51A2FE5B5160071EE09 /* Exceptions for "SpatialBoardWidgets" folder in "SpatialBoardWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9750F4FF2FE5B5140071EE09 /* SpatialBoardWidgetsExtension */;
+		};
+		9750F51D2FE5B6C70071EE09 /* Exceptions for "WhiteBoARd" folder in "SpatialBoardWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				backend/SyncActivityAttributes.swift,
+			);
+			target = 9750F4FF2FE5B5140071EE09 /* SpatialBoardWidgetsExtension */;
+		};
 		A1000010 /* Exceptions for "WhiteBoARd" folder in "WhiteBoARd" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -21,10 +68,19 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		9750F5062FE5B5140071EE09 /* SpatialBoardWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9750F51A2FE5B5160071EE09 /* Exceptions for "SpatialBoardWidgets" folder in "SpatialBoardWidgetsExtension" target */,
+			);
+			path = SpatialBoardWidgets;
+			sourceTree = "<group>";
+		};
 		A1000003 /* WhiteBoARd */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				A1000010 /* Exceptions for "WhiteBoARd" folder in "WhiteBoARd" target */,
+				9750F51D2FE5B6C70071EE09 /* Exceptions for "WhiteBoARd" folder in "SpatialBoardWidgetsExtension" target */,
 			);
 			path = WhiteBoARd;
 			sourceTree = "<group>";
@@ -32,6 +88,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		9750F4FD2FE5B5140071EE09 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9750F5052FE5B5140071EE09 /* SwiftUI.framework in Frameworks */,
+				9750F5032FE5B5140071EE09 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A10000FE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -42,10 +107,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		9750F5012FE5B5140071EE09 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				9750F5022FE5B5140071EE09 /* WidgetKit.framework */,
+				9750F5042FE5B5140071EE09 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A1000002 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				A1000001 /* WhiteBoARd.app */,
+				9750F5002FE5B5140071EE09 /* SpatialBoardWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -54,6 +129,8 @@
 			isa = PBXGroup;
 			children = (
 				A1000003 /* WhiteBoARd */,
+				9750F5062FE5B5140071EE09 /* SpatialBoardWidgets */,
+				9750F5012FE5B5140071EE09 /* Frameworks */,
 				A1000002 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,6 +138,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		9750F4FF2FE5B5140071EE09 /* SpatialBoardWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9750F5172FE5B5160071EE09 /* Build configuration list for PBXNativeTarget "SpatialBoardWidgetsExtension" */;
+			buildPhases = (
+				9750F4FC2FE5B5140071EE09 /* Sources */,
+				9750F4FD2FE5B5140071EE09 /* Frameworks */,
+				9750F4FE2FE5B5140071EE09 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9750F5062FE5B5140071EE09 /* SpatialBoardWidgets */,
+			);
+			name = SpatialBoardWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = SpatialBoardWidgetsExtension;
+			productReference = 9750F5002FE5B5140071EE09 /* SpatialBoardWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A1000000 /* WhiteBoARd */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A100010A /* Build configuration list for PBXNativeTarget "WhiteBoARd" */;
@@ -68,10 +167,12 @@
 				A10000FD /* Sources */,
 				A10000FE /* Frameworks */,
 				A10000FF /* Resources */,
+				9750F51B2FE5B5160071EE09 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				9750F5152FE5B5160071EE09 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A1000003 /* WhiteBoARd */,
@@ -90,9 +191,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1700;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 1700;
 				TargetAttributes = {
+					9750F4FF2FE5B5140071EE09 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					A1000000 = {
 						CreatedOnToolsVersion = 17.0;
 					};
@@ -113,11 +217,19 @@
 			projectRoot = "";
 			targets = (
 				A1000000 /* WhiteBoARd */,
+				9750F4FF2FE5B5140071EE09 /* SpatialBoardWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		9750F4FE2FE5B5140071EE09 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A10000FF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -128,6 +240,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		9750F4FC2FE5B5140071EE09 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A10000FD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,7 +256,77 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		9750F5152FE5B5160071EE09 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9750F4FF2FE5B5140071EE09 /* SpatialBoardWidgetsExtension */;
+			targetProxy = 9750F5142FE5B5160071EE09 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		9750F5182FE5B5160071EE09 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 36PFS9T3US;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SpatialBoardWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SpatialBoardWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.whiteboard.ar.SpatialBoardWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9750F5192FE5B5160071EE09 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 36PFS9T3US;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SpatialBoardWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SpatialBoardWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.whiteboard.ar.SpatialBoardWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		A1000108 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -330,6 +519,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		9750F5172FE5B5160071EE09 /* Build configuration list for PBXNativeTarget "SpatialBoardWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9750F5182FE5B5160071EE09 /* Debug */,
+				9750F5192FE5B5160071EE09 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A10000FB /* Build configuration list for PBXProject "WhiteBoARd" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

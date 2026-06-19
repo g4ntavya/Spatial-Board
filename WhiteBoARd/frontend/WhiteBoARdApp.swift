@@ -72,9 +72,13 @@ struct WhiteBoARdApp: App {
         }
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
-            // Sync the session to the AWS web companion when leaving the app.
-            if newPhase == .background {
-                SyncService.shared.syncInBackground(context: sharedModelContainer.mainContext)
+            // Drive the upload + Live Activity as the app leaves / returns.
+            let ctx = sharedModelContainer.mainContext
+            switch newPhase {
+            case .inactive:   SyncCoordinator.shared.sceneBecameInactive(context: ctx)
+            case .background:  SyncCoordinator.shared.sceneEnteredBackground(context: ctx)
+            case .active:      SyncCoordinator.shared.sceneBecameActive()
+            @unknown default:  break
             }
         }
     }
@@ -172,7 +176,23 @@ struct ContentView: View {
                         
                         // Active Space pill
                         ActiveSpacePill()
-                        
+
+                        // Sync now (foreground upload to the web companion)
+                        Button {
+                            Task {
+                                let msg = await SyncService.shared.syncNow(context: modelContext)
+                                withAnimation(.spring(response: 0.3)) { appState.lastSyncMessage = msg }
+                                try? await Task.sleep(for: .seconds(2.5))
+                                withAnimation { if appState.lastSyncMessage == msg { appState.lastSyncMessage = nil } }
+                            }
+                        } label: {
+                            Image(systemName: SyncService.shared.isSyncing ? "arrow.triangle.2.circlepath" : "icloud.and.arrow.up")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .glassBackground()
+                        }
+
                         // Spaces button
                         Button {
                             withAnimation(.spring(response: 0.3)) {
@@ -236,6 +256,17 @@ struct ContentView: View {
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(.spring(duration: 0.5), value: appState.konState)
+                }
+
+                // Sync status toast (top)
+                if let msg = appState.lastSyncMessage {
+                    VStack {
+                        SyncToast(text: msg)
+                        Spacer()
+                    }
+                    .padding(.top, 60)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(20)
                 }
             } else {
                 // Onboarding flow
@@ -896,6 +927,30 @@ struct ActiveSpacePill: View {
         .glassBackground()
         .transition(.scale.combined(with: .opacity))
         .animation(.spring(), value: appState.activeSpaceID)
+    }
+}
+
+// MARK: - Sync Toast
+
+struct SyncToast: View {
+    let text: String
+
+    private var isError: Bool { text.localizedCaseInsensitiveContains("fail") || text.localizedCaseInsensitiveContains("not signed") }
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(isError ? Color.orange : Color.green)
+            Text(text)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
+        .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
     }
 }
 
