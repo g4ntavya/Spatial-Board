@@ -10,6 +10,10 @@ const LINKS = [
   { label: 'Demo', href: '#demo' },
 ];
 
+// The notes web app (its own Vercel deployment). It owns the Google sign-in;
+// this button sends you there to log in. Set to your deployed URL for prod.
+const WEB_APP_URL = import.meta.env.VITE_WEB_APP_URL || 'http://localhost:3000';
+
 export default function Navbar() {
   const navRef = useRef(null);
   const [scrolled, setScrolled] = useState(false);
@@ -44,15 +48,20 @@ export default function Navbar() {
             <a key={l.href} href={l.href} className="navbar-link">{l.label}</a>
           ))}
         </div>
-        <a
-          href="https://github.com/g4ntavya/Spatial-Board"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="nav-fade navbar-cta"
-          id="nav-github-btn"
-        >
-          GitHub
-        </a>
+        <div className="nav-fade navbar-actions">
+          <a
+            href="https://github.com/g4ntavya/Spatial-Board"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="navbar-cta"
+            id="nav-github-btn"
+          >
+            GitHub
+          </a>
+          <a href={WEB_APP_URL} className="navbar-cta navbar-cta--primary" id="nav-signin-btn">
+            Sign in
+          </a>
+        </div>
       </div>
     </nav>
   );

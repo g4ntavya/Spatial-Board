@@ -50,10 +50,13 @@ function toSvg(proj, W = 1000) {
   const paths = proj.polylines
     .map((pl) => {
       const d = pl.pts.map(([x, y], i) => `${i ? 'L' : 'M'}${sx(x)} ${sy(y)}`).join(' ');
-      return `<path d="${d}" fill="none" stroke="${COLORS[pl.color] ?? '#111'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+      // Default/white ink follows the page theme (currentColor); explicit pen
+      // colors are kept. No background rect, so light/dark paper shows through.
+      const stroke = pl.color && pl.color !== 'white' ? COLORS[pl.color] ?? 'currentColor' : 'currentColor';
+      return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
     })
     .join('');
-  return { svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>${paths}</svg>`, W, H, sx, sy };
+  return { svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${paths}</svg>`, W, H, sx, sy };
 }
 
 // ── Minimal 8-bit grayscale PNG encoder (Node built-ins only) ────────────────

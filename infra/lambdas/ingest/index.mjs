@@ -11,7 +11,7 @@ import {
   BatchExecuteStatementCommand,
 } from '@aws-sdk/client-rds-data';
 import { SQSClient, SendMessageBatchCommand } from '@aws-sdk/client-sqs';
-import { createHash } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 
 const rds = new RDSDataClient({});
 const sqs = new SQSClient({});
@@ -53,6 +53,24 @@ function uuidFrom(...parts) {
 
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
+// Verify one of our own HS256 JWTs (issued by the auth Lambda) and return its
+// claims ({ email, ... }) or null.
+function verifyJwt(token) {
+  try {
+    const [h, p, sig] = token.split('.');
+    if (!h || !p || !sig) return null;
+    const expected = createHmac('sha256', process.env.AUTH_JWT_SECRET).update(`${h}.${p}`).digest('base64url');
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+    const claims = JSON.parse(Buffer.from(p, 'base64url').toString('utf8'));
+    if (claims.exp && claims.exp < Math.floor(Date.now() / 1000)) return null;
+    return claims;
+  } catch {
+    return null;
+  }
+}
+
 function centroidOf(geometry) {
   if (Array.isArray(geometry?.centroid) && geometry.centroid.length === 3) return geometry.centroid;
   const pts = geometry?.points ?? [];
@@ -85,15 +103,29 @@ export const handler = async (event) => {
   const { deviceId, spaces = [], folders = [], strokes = [] } = payload;
   if (!deviceId) return reply(400, { error: 'deviceId required' });
 
-  const userId = uuidFrom('user', deviceId);
+  // Identity: a verified Google account (keyed by email) ties this device's data
+  // to the same user the web app logs in as. Falls back to the device id when the
+  // app isn't signed in yet.
+  let identityKey = deviceId;
+  let email = `${deviceId}@device.local`;
+  const authz = headers['authorization'] ?? headers['Authorization'];
+  if (authz?.startsWith('Bearer ')) {
+    const claims = verifyJwt(authz.slice(7));
+    if (claims?.email) {
+      email = String(claims.email).toLowerCase();
+      identityKey = email;
+    }
+  }
+
+  const userId = uuidFrom('user', identityKey);
   const defaultSpaceId = uuidFrom('space', userId, 'Default');
   // iOS strokes carry spaceID as the Space UUID string, or the literal "Default".
   const resolveSpace = (ref) => (!ref || ref === 'Default' ? defaultSpaceId : uuidFrom('space', userId, ref));
 
   // ── Identity + spaces + folders ──
-  await exec(`INSERT INTO users (id,email) VALUES (:id,:email) ON CONFLICT (id) DO NOTHING`, [
+  await exec(`INSERT INTO users (id,email) VALUES (:id,:email) ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email`, [
     uuid('id', userId),
-    str('email', `${deviceId}@device.local`),
+    str('email', email),
   ]);
 
   const spaceRows = spaces.map((s) => [

@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "apply": "node apply.mjs" },
+  "scripts": { "apply": "node apply.mjs", "seed": "node seed.mjs" },
   "dependencies": {
-    "@aws-sdk/client-rds-data": "^3.667.0"
+    "@aws-sdk/client-rds-data": "^3.667.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.667.0"
   }
 }

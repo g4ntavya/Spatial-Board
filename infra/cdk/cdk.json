@@ -20,6 +20,7 @@
       "aws",
       "aws-cn"
     ],
-    "syncToken": "sb-b9f866db616461000a24"
+    "syncToken": "sb-b9f866db616461000a24",
+    "authJwtSecret": "e792a35ea451360241d733aa394b0cd27e3de7c2efe6d77ce9347faa8178e287"
   }
 }

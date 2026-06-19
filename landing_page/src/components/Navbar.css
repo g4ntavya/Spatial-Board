@@ -53,6 +53,14 @@
 }
 .navbar-cta:hover { border-color: var(--ink-faint); color: var(--ink); }
 
+.navbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+.navbar-cta--primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.navbar-cta--primary:hover { background: #fff; color: var(--bg); border-color: #fff; }
+
 @media (max-width: 760px) {
   .navbar-links { display: none; }
 }

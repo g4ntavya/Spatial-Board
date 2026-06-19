@@ -11,6 +11,7 @@ struct WhiteBoARdApp: App {
     // MARK: - State
 
     @State private var appState = AppState()
+    @State private var auth = AuthService.shared
     @Environment(\.scenePhase) private var scenePhase
     
     // MARK: - SwiftData
@@ -56,11 +57,18 @@ struct WhiteBoARdApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(appState)
-                .onAppear {
-                    setupServices()
+            Group {
+                if !auth.isSignedIn {
+                    SignInView()
+                } else {
+                    ContentView()
                 }
+            }
+            .environment(appState)
+            .environment(auth)
+            .onAppear {
+                setupServices()
+            }
         }
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
@@ -100,9 +108,11 @@ struct WhiteBoARdApp: App {
                 if let key = env["GEMINI_API_KEY"], !key.isEmpty {
                     await GeminiService.shared.configure(apiKey: key)
                 }
-                if let url = env["SPATIALBOARD_SYNC_URL"], let token = env["SPATIALBOARD_SYNC_TOKEN"],
-                   !url.isEmpty, !token.isEmpty {
-                    SyncService.shared.configure(url: url, token: token)
+                if let url = env["SPATIALBOARD_SYNC_URL"], !url.isEmpty {
+                    AuthService.shared.configure(syncURL: url)
+                    if let token = env["SPATIALBOARD_SYNC_TOKEN"], !token.isEmpty {
+                        SyncService.shared.configure(url: url, token: token)
+                    }
                 }
             }
             

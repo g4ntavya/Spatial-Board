@@ -78,6 +78,11 @@ final class SyncService {
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.setValue(token, forHTTPHeaderField: "x-api-key")
+            // Attach our auth token so the backend keys this data to the
+            // signed-in account (same user the web app logs in as).
+            if let authToken = AuthService.shared.currentToken() {
+                req.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+            }
             req.httpBody = try JSONEncoder().encode(payload)
             req.timeoutInterval = 25
 
