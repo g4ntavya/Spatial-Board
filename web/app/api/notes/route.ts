@@ -25,10 +25,14 @@ export async function GET(req: Request) {
   try {
     if (q && mode === 'semantic') {
       const vec = await embedQuery(q);
+      // Only return notes that are actually related — cosine distance below a
+      // cutoff — otherwise pgvector ranks (and returns) the entire library.
+      // Titan v2: relevant matches sit well under ~0.85; unrelated cluster above.
       const rows = await query(
         `SELECT ${cols}, (embedding <=> :v::vector) AS distance
            FROM notes WHERE ${owned} AND embedding IS NOT NULL
-          ORDER BY distance ASC LIMIT 30`,
+             AND (embedding <=> :v::vector) < 0.85
+           ORDER BY distance ASC LIMIT 30`,
         [str('v', `[${vec.join(',')}]`), str('s', space), str('uid', uid)],
       );
       return Response.json(rows);

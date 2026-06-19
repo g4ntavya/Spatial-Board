@@ -26,7 +26,9 @@ const processStack = new ProcessStack(app, 'SpatialBoardProcess', {
   cluster: data.cluster,
   secret: data.secret,
   databaseName: data.databaseName,
-  claudeModelId: 'us.anthropic.claude-sonnet-4-6',
+  // Amazon Nova Pro: first-party vision model (no Marketplace agreement / card
+  // needed, unlike Anthropic on Bedrock). Handles handwriting OCR + labelling.
+  ocrModelId: 'amazon.nova-pro-v1:0',
   embedModelId: 'amazon.titan-embed-text-v2:0',
 });
 

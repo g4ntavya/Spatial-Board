@@ -15,7 +15,7 @@ import zlib from 'zlib';
 
 const rds = new RDSDataClient({});
 const bedrock = new BedrockRuntimeClient({});
-const { CLUSTER_ARN, SECRET_ARN, DB_NAME, CLAUDE_MODEL_ID, EMBED_MODEL_ID } = process.env;
+const { CLUSTER_ARN, SECRET_ARN, DB_NAME, OCR_MODEL_ID, EMBED_MODEL_ID } = process.env;
 
 const exec = (sql, parameters = []) =>
   rds.send(new ExecuteStatementCommand({ resourceArn: CLUSTER_ARN, secretArn: SECRET_ARN, database: DB_NAME, sql, parameters }));
@@ -127,14 +127,14 @@ function rasterize(proj, W = 768) {
 }
 
 // ── Bedrock ──────────────────────────────────────────────────────────────────
-const PROMPT = `This image is a handwritten note captured in AR space. Transcribe the handwriting as accurately as you can. Then classify it.
-Reply with ONLY a JSON object, no prose:
-{"text": "<verbatim transcription, or \\"\\" if illegible>", "title": "<concise title, max 6 words>", "category": "<one of: Math, Notes, To-do, Diagram, Idea, Code, Other>"}`;
+const PROMPT = `This image is a handwritten note captured in 3D (AR) space. Read the handwriting and transcribe it as accurately as possible, preserving line breaks. If the note clearly contains multiple distinct topics, transcribe them all but base the title/category on the dominant topic.
+Reply with ONLY a minified JSON object and nothing else:
+{"text":"<verbatim transcription, or empty string if illegible>","title":"<concise title, max 6 words>","category":"<exactly one of: Math, Notes, To-do, Diagram, Idea, Code, Other>"}`;
 
 async function describe(png) {
   const out = await bedrock.send(
     new ConverseCommand({
-      modelId: CLAUDE_MODEL_ID,
+      modelId: OCR_MODEL_ID,
       messages: [{ role: 'user', content: [{ image: { format: 'png', source: { bytes: png } } }, { text: PROMPT }] }],
       inferenceConfig: { maxTokens: 600, temperature: 0 },
     }),
@@ -164,7 +164,13 @@ async function embed(text) {
 // ── Handler ───────────────────────────────────────────────────────────────────
 export const handler = async (event) => {
   for (const record of event.Records ?? []) {
-    const { noteId } = JSON.parse(record.body);
+    let noteId;
+    try {
+      noteId = JSON.parse(record.body)?.noteId;
+    } catch {
+      console.error('skipping malformed message:', record.body);
+      continue;
+    }
     if (noteId) await processNote(noteId);
   }
 };

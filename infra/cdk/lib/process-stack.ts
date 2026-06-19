@@ -15,7 +15,7 @@ export interface ProcessStackProps extends cdk.StackProps {
   cluster: rds.DatabaseCluster;
   secret: secretsmanager.ISecret;
   databaseName: string;
-  claudeModelId: string;
+  ocrModelId: string;
   embedModelId: string;
 }
 
@@ -50,7 +50,7 @@ export class ProcessStack extends cdk.Stack {
         CLUSTER_ARN: props.cluster.clusterArn,
         SECRET_ARN: props.secret.secretArn,
         DB_NAME: props.databaseName,
-        CLAUDE_MODEL_ID: props.claudeModelId,
+        OCR_MODEL_ID: props.ocrModelId,
         EMBED_MODEL_ID: props.embedModelId,
       },
     });
