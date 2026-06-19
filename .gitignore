@@ -7,7 +7,7 @@ DerivedData/
 WhiteBoARd.xcodeproj/project.xcworkspace/xcuserdata/
 WhiteBoARd.xcodeproj/xcuserdata/
 *.xcuserstate
-
+docs/
 # Python virtual environments
 .venv/
 .tmp_venv/

@@ -9,8 +9,9 @@ import SwiftData
 struct WhiteBoARdApp: App {
     
     // MARK: - State
-    
+
     @State private var appState = AppState()
+    @Environment(\.scenePhase) private var scenePhase
     
     // MARK: - SwiftData
     
@@ -62,6 +63,12 @@ struct WhiteBoARdApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
+        .onChange(of: scenePhase) { _, newPhase in
+            // Sync the session to the AWS web companion when leaving the app.
+            if newPhase == .background {
+                SyncService.shared.syncInBackground(context: sharedModelContainer.mainContext)
+            }
+        }
     }
     
     // MARK: - Setup
@@ -76,19 +83,26 @@ struct WhiteBoARdApp: App {
             GestureRecognizer.shared.configure(arSessionManager: ARSessionManager.shared)
             Kon.shared.configure(with: modelContext)
             
-            // Configure Gemini API key from .env file
+            // Load config (Gemini key + AWS sync endpoint) from the bundled .env file.
             if let envPath = Bundle.main.path(forResource: ".env", ofType: nil) ?? Bundle.main.path(forResource: "env", ofType: nil),
                let contents = try? String(contentsOfFile: envPath, encoding: .utf8) {
+                var env: [String: String] = [:]
                 for line in contents.components(separatedBy: .newlines) {
                     let trimmed = line.trimmingCharacters(in: .whitespaces)
-                    if trimmed.hasPrefix("GEMINI_API_KEY=") {
-                        let key = String(trimmed.dropFirst("GEMINI_API_KEY=".count))
-                            .trimmingCharacters(in: .whitespaces)
-                            .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-                        if !key.isEmpty {
-                            await GeminiService.shared.configure(apiKey: key)
-                        }
-                    }
+                    guard !trimmed.hasPrefix("#"), let eq = trimmed.firstIndex(of: "=") else { continue }
+                    let k = String(trimmed[..<eq]).trimmingCharacters(in: .whitespaces)
+                    let v = String(trimmed[trimmed.index(after: eq)...])
+                        .trimmingCharacters(in: .whitespaces)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+                    if !k.isEmpty { env[k] = v }
+                }
+
+                if let key = env["GEMINI_API_KEY"], !key.isEmpty {
+                    await GeminiService.shared.configure(apiKey: key)
+                }
+                if let url = env["SPATIALBOARD_SYNC_URL"], let token = env["SPATIALBOARD_SYNC_TOKEN"],
+                   !url.isEmpty, !token.isEmpty {
+                    SyncService.shared.configure(url: url, token: token)
                 }
             }
             

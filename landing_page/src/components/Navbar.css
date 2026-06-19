@@ -1,32 +1,58 @@
-/* ═══════════════════════════════════════════════════════════
-   NAVBAR — Static top bar, name left, year right
-   ═══════════════════════════════════════════════════════════ */
-
 .navbar {
-  position: relative;          /* NOT fixed — scrolls with page */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
-  padding: 2.5rem 0 0;
-  background: var(--color-bg-deep);
+  transition: background 0.4s var(--ease), border-color 0.4s var(--ease);
+  border-bottom: 1px solid transparent;
+}
+
+.navbar.is-scrolled {
+  background: rgba(12, 12, 13, 0.72);
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+  border-bottom: 1px solid var(--line);
 }
 
 .navbar-inner {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: baseline;
+  height: 72px;
 }
 
-.navbar-name {
-  font-family: var(--font-helvetica);
-  font-weight: 300;
-  font-size: 1.25rem;
-  letter-spacing: 0.06em;
-  color: var(--color-cream);
+.navbar-brand {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
-.navbar-year {
-  font-family: var(--font-helvetica);
-  font-weight: 300;
-  font-size: 1.25rem;
-  letter-spacing: 0.04em;
-  color: var(--color-red);
+.navbar-links {
+  display: flex;
+  gap: 2.25rem;
+}
+
+.navbar-link {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  transition: color 0.25s var(--ease);
+}
+.navbar-link:hover { color: var(--ink); }
+
+.navbar-cta {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: border-color 0.25s var(--ease), color 0.25s var(--ease);
+}
+.navbar-cta:hover { border-color: var(--ink-faint); color: var(--ink); }
+
+@media (max-width: 760px) {
+  .navbar-links { display: none; }
 }

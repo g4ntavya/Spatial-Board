@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { shouldAnimate } from '../lib/motion';
 import './Showcase.css';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -98,6 +99,7 @@ export default function Showcase() {
   const sectionRef = useRef(null);
 
   useEffect(() => {
+    if (!shouldAnimate()) return;
     const ctx = gsap.context(() => {
       // Intro header animations
       gsap.fromTo(
@@ -173,8 +175,8 @@ export default function Showcase() {
     <section ref={sectionRef} className="showcase" id="showcase">
       <div className="container">
         <div className="showcase-header">
-          <span className="showcase-eyebrow">Visual System Walkthrough</span>
-          <h2 className="showcase-title">See SpatialBoard in Action</h2>
+          <span className="showcase-eyebrow">The capture device</span>
+          <h2 className="showcase-title">Inside the iPhone app</h2>
         </div>
 
         <div className="showcase-gallery-sections">

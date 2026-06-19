@@ -1,91 +1,75 @@
-/* ═══════════════════════════════════════════════════════════
-   FOOTER — Minimal, purposeful
-   ═══════════════════════════════════════════════════════════ */
-
 .footer {
-  background: var(--color-bg-deep);
-  padding: 0 0 var(--space-lg);
+  background: var(--bg);
+  padding: 0 0 clamp(2.5rem, 5vw, 4rem);
 }
 
 .footer-rule {
-  height: 1px;
-  background: var(--color-red);
-  margin-bottom: var(--space-xl);
-  transform-origin: left center;
+  background: var(--line);
+  margin-bottom: clamp(3rem, 6vw, 4.5rem);
 }
 
-.footer-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-lg);
-}
-
-/* ── Brand ── */
-.footer-brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-}
-
-.footer-cursive {
-  font-family: var(--font-arizonia);
-  font-size: 1.6rem;
-  color: var(--color-cream);
-  line-height: 1.2;
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: clamp(2rem, 5vw, 4rem);
+  margin-bottom: clamp(3rem, 6vw, 4.5rem);
 }
 
 .footer-logo {
-  font-family: var(--font-impact);
-  font-size: 2.8rem;
-  color: var(--color-red);
+  font-size: 1.35rem;
+  font-weight: 600;
   letter-spacing: -0.02em;
-  line-height: 1;
 }
 
-/* ── Nav ── */
+.footer-tagline {
+  margin-top: 1rem;
+  font-size: 0.92rem;
+  font-weight: 300;
+  color: var(--ink-soft);
+  max-width: 32ch;
+}
+
 .footer-nav {
   display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.footer-nav-label {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 0.4rem;
 }
 
 .footer-nav-link {
-  font-family: var(--font-helvetica);
-  font-size: 0.82rem;
-  font-weight: 400;
-  color: var(--color-white-dim);
-  text-decoration: none;
-  letter-spacing: 0.02em;
-  transition: color var(--transition-fast);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  transition: color 0.25s var(--ease);
+  width: fit-content;
 }
+.footer-nav-link:hover { color: var(--ink); }
 
-.footer-nav-link:hover {
-  color: var(--color-red);
-}
-
-/* ── Colophon ── */
 .footer-colophon {
-  font-family: var(--font-helvetica);
-  font-size: 0.72rem;
-  font-weight: 300;
-  color: var(--color-gray);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
+  flex-wrap: wrap;
+  padding-top: clamp(2rem, 4vw, 3rem);
+  border-top: 1px solid var(--line);
 }
+.footer-sep { color: var(--ink-faint); }
 
-.footer-x-link {
-  color: var(--color-gray);
-  transition: color var(--transition-fast);
+@media (max-width: 720px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .footer-brand { grid-column: 1 / -1; }
 }
-
-.footer-x-link:hover {
-  color: var(--color-red);
-}
-
-.footer-sep {
-  opacity: 0.4;
+@media (max-width: 460px) {
+  .footer-grid { grid-template-columns: 1fr; }
 }

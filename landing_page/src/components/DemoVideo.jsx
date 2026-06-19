@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { shouldAnimate } from '../lib/motion';
 import './DemoVideo.css';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -9,6 +10,7 @@ export default function DemoVideo() {
   const sectionRef = useRef(null);
 
   useEffect(() => {
+    if (!shouldAnimate()) return;
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.demo-eyebrow, .demo-title',
