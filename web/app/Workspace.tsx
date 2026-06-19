@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
 
 export type Space = { id: string; name: string; color_hex: string };
@@ -36,6 +36,7 @@ export default function Workspace({
   const [selected, setSelected] = useState<NoteDetail | null>(null);
   const [related, setRelated] = useState<Related[]>([]);
   const [transcribing, setTranscribing] = useState(false);
+  const [detailMenuOpen, setDetailMenuOpen] = useState(false);
 
   // ── Theme ──
   useEffect(() => {
@@ -76,9 +77,21 @@ export default function Workspace({
 
   const openNote = async (id: string) => {
     setRelated([]);
+    setDetailMenuOpen(false);
     const res = await fetch(`/api/note?id=${id}`, { cache: 'no-store' });
     if (res.ok) setSelected(await res.json());
     fetch(`/api/related?id=${id}`, { cache: 'no-store' }).then(async (r) => r.ok && setRelated(await r.json()));
+  };
+
+  const deleteNote = async (id: string) => {
+    // Optimistic: drop it from the UI immediately, then persist.
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+    if (selected?.id === id) {
+      setSelected(null);
+      setDetailMenuOpen(false);
+    }
+    await fetch(`/api/note?id=${id}`, { method: 'DELETE' });
+    loadCategories();
   };
 
   const transcribe = async () => {
@@ -124,16 +137,7 @@ export default function Workspace({
   }
 
   const renderCard = (n: Note) => (
-    <button key={n.id} className={`note-card ${selected?.id === n.id ? 'active' : ''}`} onClick={() => openNote(n.id)}>
-      <div className="note-title">{n.title || 'Untitled note'}</div>
-      <div className="note-snippet">
-        {n.ocr_text?.trim() || (n.status === 'partial' ? 'Handwriting saved · tap Convert to text' : n.status === 'pending' ? 'Processing…' : 'No text yet')}
-      </div>
-      <div className="note-meta">
-        {n.category && <span className="tag">{n.category}</span>}
-        <span className="date">{formatDate(n.updated_at)}</span>
-      </div>
-    </button>
+    <NoteRow key={n.id} note={n} active={selected?.id === n.id} onOpen={() => openNote(n.id)} onDelete={() => deleteNote(n.id)} />
   );
 
   return (
@@ -203,10 +207,27 @@ export default function Workspace({
         {selected ? (
           <article className="detail-inner">
             <header className="detail-head">
-              <h1>{selected.title || 'Untitled note'}</h1>
-              <div className="detail-meta">
-                {selected.category && <span className="tag">{selected.category}</span>}
-                <span className="date">{formatDate(selected.updated_at)}</span>
+              <div className="detail-head-text">
+                <h1>{selected.title || 'Untitled note'}</h1>
+                <div className="detail-meta">
+                  {selected.category && <span className="tag">{selected.category}</span>}
+                  <span className="date">{formatDate(selected.updated_at)}</span>
+                </div>
+              </div>
+              <div className="kebab-wrap">
+                <button className="kebab-btn" onClick={() => setDetailMenuOpen((o) => !o)} aria-label="Note actions">
+                  <KebabIcon />
+                </button>
+                {detailMenuOpen && (
+                  <>
+                    <div className="menu-backdrop" onClick={() => setDetailMenuOpen(false)} />
+                    <div className="kebab-menu">
+                      <button className="menu-item danger" onClick={() => deleteNote(selected.id)}>
+                        <TrashIcon /> Delete note
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </header>
 
@@ -259,3 +280,105 @@ function formatDate(iso: string) {
 const MoonIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>);
 const SunIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" /></svg>);
 const FolderIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>);
+const KebabIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="12" cy="19" r="1.6" /></svg>);
+const TrashIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>);
+
+// A note card with an Apple-style ⋯ menu (hover/tap) and swipe-left-to-delete.
+function NoteRow({ note, active, onOpen, onDelete }: { note: Note; active: boolean; onOpen: () => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);      // swiped open (Delete revealed)
+  const [dragX, setDragX] = useState<number | null>(null); // live drag offset
+  const [menuOpen, setMenuOpen] = useState(false);
+  const startX = useRef(0);
+  const baseX = useRef(0);
+  const lastX = useRef(0);
+  const dragging = useRef(false);
+  const moved = useRef(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const snippet = note.ocr_text?.trim()
+    || (note.status === 'partial' ? 'Handwriting saved · tap Convert to text'
+      : note.status === 'pending' ? 'Processing…' : 'No text yet');
+
+  // Close the ⋯ menu on any outside click.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!cardRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('click', onDoc);
+    return () => document.removeEventListener('click', onDoc);
+  }, [menuOpen]);
+
+  const tx = dragX !== null ? dragX : open ? -80 : 0;
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    // Don't start a swipe when pressing the ⋯ button or its menu.
+    if ((e.target as HTMLElement).closest('.note-more, .kebab-menu')) return;
+    startX.current = e.clientX;
+    baseX.current = open ? -80 : 0;
+    lastX.current = baseX.current;
+    dragging.current = true;
+    moved.current = false;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    if (Math.abs(e.clientX - startX.current) > 4) moved.current = true;
+    const clamped = Math.max(-92, Math.min(0, baseX.current + (e.clientX - startX.current)));
+    lastX.current = clamped;
+    setDragX(clamped);
+  };
+  const endDrag = () => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    setOpen(lastX.current < -40); // stay open if dragged past threshold
+    setDragX(null);
+  };
+  const onClick = () => {
+    if (moved.current) { moved.current = false; return; } // it was a drag, not a tap
+    if (open) { setOpen(false); return; }                 // tap closes the revealed Delete
+    onOpen();
+  };
+
+  return (
+    <div className="note-row">
+      {(open || dragX !== null) && (
+        <button className="note-delete-action" onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label="Delete note">
+          <TrashIcon />
+        </button>
+      )}
+      <div
+        ref={cardRef}
+        className={`note-card ${active ? 'active' : ''}`}
+        style={{ transform: `translateX(${tx}px)` }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClick={onClick}
+      >
+        <div className="note-title">{note.title || 'Untitled note'}</div>
+        <div className="note-snippet">{snippet}</div>
+        <div className="note-meta">
+          {note.category && <span className="tag">{note.category}</span>}
+          <span className="date">{formatDate(note.updated_at)}</span>
+        </div>
+
+        <button
+          className="note-more"
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
+          aria-label="Note actions"
+        >
+          <KebabIcon />
+        </button>
+        {menuOpen && (
+          <div className="kebab-menu" onClick={(e) => e.stopPropagation()}>
+            <button className="menu-item danger" onClick={() => { setMenuOpen(false); onDelete(); }}>
+              <TrashIcon /> Delete
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
