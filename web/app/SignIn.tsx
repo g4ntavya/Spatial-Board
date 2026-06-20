@@ -39,9 +39,15 @@ export default function SignIn() {
 
   return (
     <div className="signin">
-      <form className="signin-card" onSubmit={onSubmit}>
-        <div className="signin-brand">SpatialBoard</div>
-        <p className="signin-tagline">Your spatial notes, indexed and searchable.</p>
+      <div className="signin-aura" aria-hidden="true" />
+      <div className="signin-stage">
+        <header className="signin-hero">
+          <span className="signin-eyebrow">Welcome to</span>
+          <h1 className="signin-wordmark">Spatial<span>Board</span></h1>
+          <p className="signin-tagline">Your spatial notes, indexed and searchable.</p>
+        </header>
+        <form className="signin-card" onSubmit={onSubmit}>
+        <h2 className="signin-heading">{isSignup ? 'Create your account' : 'Sign in'}</h2>
         <input
           className="signin-input"
           type="email"
@@ -83,7 +89,8 @@ export default function SignIn() {
         >
           {isSignup ? 'Already have an account? Sign in' : 'New here? Create an account'}
         </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
