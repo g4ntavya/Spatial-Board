@@ -423,76 +423,65 @@ const SparkIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="c
 const CollapseIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 6l-6 6 6 6" /></svg>);
 const ExpandIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>);
 
-// A note card with an Apple-style ⋯ menu (Move / Share / Delete) + swipe-to-delete.
+// A note card with an Apple-style ⋯ menu (Move / Share / Delete). The menu is a
+// fixed-position popover anchored to the button, so it's never clipped.
 function NoteRow({ note, active, readOnly, categories, onOpen, onDelete, onMove, onShare }: {
   note: Note; active: boolean; readOnly?: boolean; categories: CategoryCount[];
   onOpen: () => void; onDelete: () => void; onMove: (category: string) => void; onShare: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [dragX, setDragX] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const startX = useRef(0); const baseX = useRef(0); const lastX = useRef(0);
-  const dragging = useRef(false); const moved = useRef(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const snippet = note.ocr_text?.trim()
     || (note.owner ? `from ${note.owner}` : note.status === 'partial' ? 'Handwriting saved · tap Convert to text' : note.status === 'pending' ? 'Processing…' : 'No text yet');
 
   useEffect(() => {
     if (!menuOpen) return;
-    const onDoc = (e: MouseEvent) => { if (!cardRef.current?.contains(e.target as Node)) setMenuOpen(false); };
-    document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
+    const close = (e: Event) => {
+      if (menuRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node)) return;
+      setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    window.addEventListener('scroll', () => setMenuOpen(false), true);
+    return () => { document.removeEventListener('mousedown', close); };
   }, [menuOpen]);
 
-  const tx = dragX !== null ? dragX : open ? -80 : 0;
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (readOnly) return;
-    if ((e.target as HTMLElement).closest('.note-more, .kebab-menu')) return;
-    startX.current = e.clientX; baseX.current = open ? -80 : 0; lastX.current = baseX.current;
-    dragging.current = true; moved.current = false;
-    e.currentTarget.setPointerCapture(e.pointerId);
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const r = btnRef.current!.getBoundingClientRect();
+    const W = 210;
+    setPos({ top: r.bottom + 6, left: clamp(r.right - W, 8, window.innerWidth - W - 8) });
+    setMenuOpen((o) => !o);
   };
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    if (Math.abs(e.clientX - startX.current) > 4) moved.current = true;
-    const c = clamp(baseX.current + (e.clientX - startX.current), -92, 0);
-    lastX.current = c; setDragX(c);
-  };
-  const endDrag = () => { if (!dragging.current) return; dragging.current = false; setOpen(lastX.current < -40); setDragX(null); };
-  const onClick = () => { if (moved.current) { moved.current = false; return; } if (open) { setOpen(false); return; } onOpen(); };
 
   const moveTargets = categories.filter((c) => c.category !== (note.category || 'Uncategorized'));
 
   return (
     <div className="note-row">
-      {(open || dragX !== null) && (
-        <button className="note-delete-action" onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label="Delete note"><TrashIcon /></button>
-      )}
-      <div ref={cardRef} className={`note-card ${active ? 'active' : ''}`} style={{ transform: `translateX(${tx}px)` }}
-        onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag} onClick={onClick}>
+      <div className={`note-card ${active ? 'active' : ''}`} onClick={onOpen}>
         <div className="note-title">{note.title || 'Untitled note'}</div>
         <div className="note-snippet">{snippet}</div>
         <div className="note-meta">
           {note.category && <span className="tag">{note.category}</span>}
           <span className="date">{formatDate(note.updated_at)}</span>
         </div>
-
         {!readOnly && (
-          <button className="note-more" onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }} aria-label="Note actions"><KebabIcon /></button>
-        )}
-        {menuOpen && (
-          <div className="kebab-menu" onClick={(e) => e.stopPropagation()}>
-            {moveTargets.length > 0 && <div className="menu-label">Move to</div>}
-            {moveTargets.map((c) => (
-              <button key={c.category} className="menu-item" onClick={() => { setMenuOpen(false); onMove(c.category); }}><FolderIcon /> {c.category}</button>
-            ))}
-            {moveTargets.length > 0 && <div className="menu-sep" />}
-            <button className="menu-item" onClick={() => { setMenuOpen(false); onShare(); }}><ShareIcon /> Share</button>
-            <button className="menu-item danger" onClick={() => { setMenuOpen(false); onDelete(); }}><TrashIcon /> Delete</button>
-          </div>
+          <button ref={btnRef} className="note-more" onClick={toggleMenu} aria-label="Note actions"><KebabIcon /></button>
         )}
       </div>
+      {menuOpen && (
+        <div ref={menuRef} className="kebab-popover" style={{ top: pos.top, left: pos.left }} onClick={(e) => e.stopPropagation()}>
+          {moveTargets.length > 0 && <div className="menu-label">Move to</div>}
+          {moveTargets.map((c) => (
+            <button key={c.category} className="menu-item" onClick={() => { setMenuOpen(false); onMove(c.category); }}><FolderIcon /> {c.category}</button>
+          ))}
+          {moveTargets.length > 0 && <div className="menu-sep" />}
+          <button className="menu-item" onClick={() => { setMenuOpen(false); onShare(); }}><ShareIcon /> Share</button>
+          <button className="menu-item danger" onClick={() => { setMenuOpen(false); onDelete(); }}><TrashIcon /> Delete</button>
+        </div>
+      )}
     </div>
   );
 }

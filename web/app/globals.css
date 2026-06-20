@@ -124,41 +124,37 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   color: var(--text-3); padding: 14px 12px 6px;
 }
 .group-head span { font-weight: 600; }
-/* Swipeable row: card sits above a red Delete action revealed on swipe-left.
-   No overflow:hidden — that would clip the ⋯ menu. The Delete action is only
-   rendered while swiped/open, so it never shows on hover. */
 .note-row { position: relative; margin-bottom: 2px; }
-.note-delete-action {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 80px;
-  display: flex; align-items: center; justify-content: center;
-  background: #e5484d; color: #fff; border-radius: 0 10px 10px 0;
-}
-.note-delete-action:hover { background: #d33a3f; }
 .note-card {
   position: relative; display: block; width: 100%; text-align: left;
   padding: 11px 12px; border-radius: 10px;
-  background: var(--list-bg);              /* opaque: hides the action beneath */
-  transition: background 0.15s, transform 0.22s cubic-bezier(0.22,1,0.36,1);
-  touch-action: pan-y; cursor: pointer; user-select: none;
+  background: var(--list-bg);
+  transition: background 0.15s; cursor: pointer;
 }
 .note-card:hover { background: var(--card-hover); }
 .note-card.active { background: var(--select); }
 
-/* ⋯ button (appears on hover; always on touch) + popover menu */
+/* ⋯ button — clearly visible, brighter on hover */
 .note-more {
   position: absolute; top: 8px; right: 8px;
-  width: 26px; height: 26px; border-radius: 7px;
+  width: 28px; height: 28px; border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
-  color: var(--text-3); opacity: 0.4; transition: opacity 0.15s, background 0.15s;
+  color: var(--text-2); opacity: 0.85; transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
-.note-row:hover .note-more { opacity: 0.8; }
-.note-more:hover { background: var(--hover); color: var(--text); opacity: 1; }
+.note-row:hover .note-more { opacity: 1; }
+.note-more:hover { background: var(--hover); color: var(--text); }
 
 .menu-backdrop { position: fixed; inset: 0; z-index: 40; }
 .kebab-menu {
   position: absolute; top: 32px; right: 8px; z-index: 50;
-  min-width: 152px; padding: 5px;
+  min-width: 160px; padding: 5px;
   background: var(--bg); border: 1px solid var(--line); border-radius: 11px;
+  box-shadow: var(--shadow);
+}
+/* Fixed popover for note-card menus — never clipped by the scroll container. */
+.kebab-popover {
+  position: fixed; z-index: 120; min-width: 200px; padding: 5px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
   box-shadow: var(--shadow);
 }
 .menu-item {
