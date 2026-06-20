@@ -51,6 +51,10 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
   const [newFolderName, setNewFolderName] = useState('');
   const [folderMenu, setFolderMenu] = useState<{ category: string; top: number; left: number } | null>(null);
 
+  // Spatial positions (for "where you wrote it") + handwriting canvas ref.
+  const [positions, setPositions] = useState<{ id: string; x: number; y: number }[]>([]);
+  const canvasRef = useRef<HTMLDivElement>(null);
+
   // ── Theme ──
   useEffect(() => {
     setTheme((localStorage.getItem('sb-theme') as 'light' | 'dark' | null) ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
@@ -72,6 +76,49 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
   useEffect(() => {
     if (activeId) localStorage.setItem(`sb-folders-${activeId}`, JSON.stringify(customFolders));
   }, [customFolders, activeId]);
+
+  // ── Accent theming: the active space's colour drives the whole UI accent ──
+  useEffect(() => {
+    const sp = spaces.find((s) => s.id === activeId);
+    if (sp?.color_hex) document.documentElement.style.setProperty('--accent', sp.color_hex);
+  }, [activeId, spaces]);
+
+  // ── Spatial positions for the active space ──
+  useEffect(() => {
+    if (!activeId || sharedView) { setPositions([]); return; }
+    let alive = true;
+    fetch(`/api/positions?space=${activeId}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((p) => { if (alive) setPositions(Array.isArray(p) ? p : []); })
+      .catch(() => { if (alive) setPositions([]); });
+    return () => { alive = false; };
+  }, [activeId, sharedView, notes.length]);
+
+  // ── Self-drawing ink: animate the handwriting strokes on open (≤ 2s total) ──
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el || !selected?.svg) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const raf = requestAnimationFrame(() => {
+      const paths = Array.from(el.querySelectorAll('path')) as SVGPathElement[];
+      if (!paths.length) return;
+      const TOTAL = 1700;
+      const N = paths.length;
+      paths.forEach((p, i) => {
+        let len = 0;
+        try { len = p.getTotalLength(); } catch { return; }
+        if (!len || !isFinite(len)) return;
+        p.style.strokeDasharray = String(len);
+        p.style.strokeDashoffset = String(len);
+        const anim = p.animate(
+          [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+          { duration: TOTAL * 0.5, delay: (i / N) * TOTAL * 0.5, easing: 'cubic-bezier(.45,.05,.25,1)', fill: 'forwards' },
+        );
+        anim.onfinish = () => { p.style.strokeDashoffset = '0'; };
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [selected?.id, selected?.svg]);
 
   // ── Data loading ──
   const loadNotes = useCallback(async () => {
@@ -186,6 +233,8 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
     return [...map.entries()];
   }, [visible, query, activeCategory, sharedView]);
 
+  const selPos = selected ? positions.find((p) => p.id === selected.id) : undefined;
+
   if (dbError) {
     return (
       <div className="empty-full">
@@ -202,6 +251,7 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
       active={selected?.id === n.id}
       readOnly={sharedView}
       categories={folderList}
+      query={query}
       onOpen={() => openNote(n.id)}
       onDelete={() => deleteNote(n.id)}
       onMove={(c) => moveNote(n.id, c)}
@@ -295,9 +345,15 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
         </div>
 
         <div className="notes">
-          {loading && <div className="hint">Loading…</div>}
+          {loading && (
+            <div className="skeletons">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel-card" />)}</div>
+          )}
           {!loading && visible.length === 0 && (
-            <div className="hint">{sharedView ? 'Nothing shared with you yet.' : query ? 'No matches.' : 'No notes yet. Draw in the app and exit to sync.'}</div>
+            <div className="hint">{sharedView
+              ? 'Nothing shared with you yet — ask a friend to share a note.'
+              : query
+                ? 'No matches. Try another word, or switch to Semantic.'
+                : 'No notes yet. Draw in the app, then exit to sync — they show up here.'}</div>
           )}
           {!loading && grouped
             ? grouped.map(([cat, items]) => (
@@ -320,6 +376,9 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
                 <h1>{selected.title || 'Untitled note'}</h1>
                 <div className="detail-meta">
                   {selected.category && <span className="tag">{selected.category}</span>}
+                  {selPos && positions.length > 0 && (
+                    <span className="tag tag-spatial"><PinIcon /> {relativeLabel(positions, selPos)}</span>
+                  )}
                   <span className="date">{formatDate(selected.updated_at)}</span>
                   {selected.owned === false && selected.owner && <span className="shared-by">shared by {selected.owner}</span>}
                 </div>
@@ -341,7 +400,7 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
             </header>
 
             {selected.svg ? (
-              <div className="canvas" dangerouslySetInnerHTML={{ __html: selected.svg }} />
+              <div className="canvas" ref={canvasRef} dangerouslySetInnerHTML={{ __html: selected.svg }} />
             ) : (
               <div className="canvas placeholder">{selected.status === 'pending' ? 'Processing…' : 'Handwriting not shared'}</div>
             )}
@@ -360,6 +419,10 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
                   ? <p>{selected.ocr_text}</p>
                   : <p className="muted">{transcribing ? 'Reading your handwriting…' : 'Not transcribed yet — convert your handwriting to clean text.'}</p>}
               </section>
+            )}
+
+            {selPos && positions.length > 0 && (
+              <SpatialMap points={positions} selectedId={selected.id} label={relativeLabel(positions, selPos)} />
             )}
 
             {related.length > 0 && (
@@ -509,10 +572,64 @@ const CollapseIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill
 const ExpandIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>);
 const PlusIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>);
 
+// Wrap query terms in <mark> so matches stand out in titles + snippets.
+function highlight(text: string, q?: string) {
+  const s = (q ?? '').trim();
+  if (!s || !text) return text;
+  const terms = s.split(/\s+/).filter((t) => t.length > 1).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!terms.length) return text;
+  const splitRe = new RegExp(`(${terms.join('|')})`, 'gi');
+  const matchRe = new RegExp(`^(?:${terms.join('|')})$`, 'i');
+  return text.split(splitRe).map((part, i) => (matchRe.test(part) ? <mark key={i} className="hl">{part}</mark> : part));
+}
+
+// Coordinates are meaningless on their own, so describe a note's position
+// relative to the other notes in the space ("top-left", "center", …).
+function relativeLabel(points: { x: number; y: number }[], sel: { x: number; y: number }) {
+  const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const xn = maxX - minX > 1e-6 ? (sel.x - minX) / (maxX - minX) : 0.5;
+  const yn = maxY - minY > 1e-6 ? (sel.y - minY) / (maxY - minY) : 0.5;
+  const h = xn < 0.34 ? 'left' : xn > 0.66 ? 'right' : 'center';
+  const v = yn > 0.66 ? 'top' : yn < 0.34 ? 'bottom' : 'middle';
+  if (v === 'middle' && h === 'center') return 'center of this space';
+  if (v === 'middle') return `${h} of this space`;
+  if (h === 'center') return `${v} of this space`;
+  return `${v}-${h} of this space`;
+}
+
+// A tiny relative map of where notes were written in the space; this note is
+// highlighted. Plots x (left↔right) and y (down↔up, flipped for screen).
+function SpatialMap({ points, selectedId, label }: {
+  points: { id: string; x: number; y: number }[]; selectedId: string; label: string;
+}) {
+  if (!points.length) return null;
+  const W = 184, H = 110, pad = 14;
+  const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rx = maxX - minX, ry = maxY - minY;
+  const px = (p: { x: number }) => pad + (rx > 1e-6 ? (p.x - minX) / rx : 0.5) * (W - 2 * pad);
+  const py = (p: { y: number }) => pad + (1 - (ry > 1e-6 ? (p.y - minY) / ry : 0.5)) * (H - 2 * pad);
+  return (
+    <section className="spatial">
+      <div className="transcript-label">Where you wrote it · <span className="spatial-rel">{label}</span></div>
+      <svg className="spatial-map" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Spatial position: ${label}`}>
+        <rect x="1" y="1" width={W - 2} height={H - 2} rx="12" className="spatial-frame" />
+        {points.map((p) => (
+          <circle key={p.id} cx={px(p)} cy={py(p)} r={p.id === selectedId ? 5 : 2.5}
+            className={p.id === selectedId ? 'spatial-dot sel' : 'spatial-dot'} />
+        ))}
+      </svg>
+    </section>
+  );
+}
+
+const PinIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z" /><circle cx="12" cy="10" r="2.4" /></svg>);
+
 // A note card with an Apple-style ⋯ menu (Move / Share / Delete). The menu is a
 // fixed-position popover anchored to the button, so it's never clipped.
-function NoteRow({ note, active, readOnly, categories, onOpen, onDelete, onMove, onShare }: {
-  note: Note; active: boolean; readOnly?: boolean; categories: CategoryCount[];
+function NoteRow({ note, active, readOnly, categories, query, onOpen, onDelete, onMove, onShare }: {
+  note: Note; active: boolean; readOnly?: boolean; categories: CategoryCount[]; query?: string;
   onOpen: () => void; onDelete: () => void; onMove: (category: string) => void; onShare: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -547,8 +664,8 @@ function NoteRow({ note, active, readOnly, categories, onOpen, onDelete, onMove,
   return (
     <div className="note-row">
       <div className={`note-card ${active ? 'active' : ''}`} onClick={onOpen}>
-        <div className="note-title">{note.title || 'Untitled note'}</div>
-        <div className="note-snippet">{snippet}</div>
+        <div className="note-title">{highlight(note.title || 'Untitled note', query)}</div>
+        <div className="note-snippet">{highlight(snippet, query)}</div>
         <div className="note-meta">
           {note.category && <span className="tag">{note.category}</span>}
           <span className="date">{formatDate(note.updated_at)}</span>

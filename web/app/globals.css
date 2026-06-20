@@ -143,9 +143,11 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   position: relative; display: block; width: 100%; text-align: left;
   padding: 11px 12px; border-radius: 10px;
   background: var(--list-bg);
-  transition: background 0.15s; cursor: pointer;
+  transition: background 0.15s, transform 0.18s cubic-bezier(.34, 1.56, .64, 1), box-shadow 0.18s;
+  cursor: pointer;
+  animation: sb-pop 0.28s cubic-bezier(.34, 1.56, .64, 1) both;
 }
-.note-card:hover { background: var(--card-hover); }
+.note-card:hover { background: var(--card-hover); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.09); }
 .note-card.active { background: var(--select); }
 
 /* ⋯ button — clearly visible, brighter on hover */
@@ -335,4 +337,39 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   .account { margin: 0; border: none; padding: 4px 8px; }
   .detail { padding: 28px 20px; }
   .resizer { display: none; }
+}
+
+/* ── Playful + solid: micro-interactions, skeletons, highlights, spatial map ── */
+@keyframes sb-pop { from { opacity: 0; transform: translateY(6px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sb-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* spring "press" on the playful controls */
+.modes button, .ask-launch, .signin-btn, .convert-btn, .btn-primary, .folder-add, .icon-btn {
+  transition: transform 0.1s cubic-bezier(.34, 1.56, .64, 1), background 0.15s, color 0.15s, opacity 0.15s;
+}
+.modes button:active, .ask-launch:active, .signin-btn:active, .convert-btn:active, .btn-primary:active, .folder-add:active, .icon-btn:active { transform: scale(0.94); }
+
+/* loading skeletons */
+.skeletons { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+.skel-card {
+  height: 62px; border-radius: 10px;
+  background: linear-gradient(90deg, var(--hover) 25%, var(--card-hover) 37%, var(--hover) 63%);
+  background-size: 400% 100%; animation: sb-shimmer 1.4s ease-in-out infinite;
+}
+
+/* matched-term highlight */
+.hl { background: color-mix(in srgb, var(--accent) 38%, transparent); color: inherit; border-radius: 3px; padding: 0 1.5px; }
+
+/* spatial position chip + mini map */
+.tag-spatial { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.spatial { margin-top: 18px; }
+.spatial-rel { color: var(--accent-strong); font-weight: 600; }
+.spatial-map { display: block; margin-top: 8px; width: 184px; height: 110px; }
+.spatial-frame { fill: var(--hover); stroke: var(--line); stroke-width: 1; }
+.spatial-dot { fill: var(--text-3); transition: r 0.2s; }
+.spatial-dot.sel { fill: var(--accent); stroke: var(--bg); stroke-width: 1.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .note-card, .skel-card { animation: none; }
+  .note-card:hover { transform: none; }
 }
