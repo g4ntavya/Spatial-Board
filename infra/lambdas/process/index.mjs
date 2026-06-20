@@ -45,11 +45,31 @@ function toSvg(proj, W = 1000) {
   const pad = 0.06 * Math.max(w, h);
   const scale = (W - 2) / (w + 2 * pad);
   const H = Math.round((h + 2 * pad) * scale);
-  const sx = (x) => ((x - proj.minX + pad) * scale).toFixed(1);
-  const sy = (y) => ((y - proj.minY + pad) * scale).toFixed(1);
+  const sx = (x) => (x - proj.minX + pad) * scale;
+  const sy = (y) => (y - proj.minY + pad) * scale;
+  // The iOS app smooths every stroke (Catmull-Rom + Gaussian) before syncing.
+  // Drawing those points as straight segments would discard that smoothing, so we
+  // re-curve them here with a Catmull-Rom spline (converted to cubic béziers) for a
+  // faithful, handwriting-quality result that matches what was drawn in AR.
+  const smoothPathD = (pts) => {
+    const P = pts.map(([x, y]) => [sx(x), sy(y)]);
+    const f = (n) => n.toFixed(1);
+    if (P.length < 3) return P.map(([x, y], i) => `${i ? 'L' : 'M'}${f(x)} ${f(y)}`).join(' ');
+    let d = `M${f(P[0][0])} ${f(P[0][1])}`;
+    for (let i = 0; i < P.length - 1; i++) {
+      const p0 = P[i === 0 ? 0 : i - 1];
+      const p1 = P[i];
+      const p2 = P[i + 1];
+      const p3 = P[i + 2 < P.length ? i + 2 : i + 1];
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += `C${f(c1x)} ${f(c1y)} ${f(c2x)} ${f(c2y)} ${f(p2[0])} ${f(p2[1])}`;
+    }
+    return d;
+  };
   const paths = proj.polylines
     .map((pl) => {
-      const d = pl.pts.map(([x, y], i) => `${i ? 'L' : 'M'}${sx(x)} ${sy(y)}`).join(' ');
+      const d = smoothPathD(pl.pts);
       // Default/white ink follows the page theme (currentColor); explicit pen
       // colors are kept. No background rect, so light/dark paper shows through.
       const stroke = pl.color && pl.color !== 'white' ? COLORS[pl.color] ?? 'currentColor' : 'currentColor';

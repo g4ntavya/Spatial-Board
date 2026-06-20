@@ -237,39 +237,89 @@ final class Kon {
         
         let sampleCount = max(profile.samples.count, 1)
         let charHeight = defaultCharHeight * scale
-        let charWidth = charHeight * profile.averageAspectRatio
-        let targetSize = SIMD2<Float>(charWidth, charHeight)
-        
-        // --- Multi-Stroke Topology-Preserving Pipeline ---
-        // Average per-stroke-path across samples, keeping each sub-stroke separate
-        if profile.samples.count > 1, let averagedPaths = averageNormalizedStrokePaths(for: profile), !averagedPaths.isEmpty {
-            let noiseDamping = 1.0 / sqrt(Float(sampleCount))
-            var worldPaths: [[BezierSegment]] = []
-            for normPath in averagedPaths {
-                let perturbed = addNoise(to: normPath, magnitude: noiseScale * 0.15 * noiseDamping)
-                let slanted = applySlant(to: perturbed, slant: sampleSlant(sampleCount: sampleCount))
-                let world = denormalizeSegments(slanted, position: position, size: targetSize, right: rightVector, up: upwardVector)
-                worldPaths.append(world)
-            }
-            return (worldPaths, charWidth)
+
+        // Build the glyph's normalized stroke paths (≈ unit space, one entry per
+        // sub-stroke so multi-stroke characters keep their topology).
+        var normPaths: [[BezierSegment]]
+        if profile.samples.count > 1,
+           let averagedPaths = averageNormalizedStrokePaths(for: profile), !averagedPaths.isEmpty {
+            // --- Multi-Stroke Topology-Preserving Pipeline ---
+            normPaths = averagedPaths
+        } else {
+            // Single sample — still split by stroke breaks
+            let sample = profile.samples.count == 1 ? profile.samples[0] : profile.samples.randomElement()!
+            let normalized = normalizeSegments(sample.segments, boundingBox: sample.boundingBox)
+            let breaks = sample.strokeBreakIndices.isEmpty ? [0] : sample.strokeBreakIndices
+            normPaths = splitByStrokeBreaks(normalized, breaks: breaks)
         }
-        
-        // Fallback: single sample — still split by stroke breaks
-        let sample = profile.samples.count == 1 ? profile.samples[0] : profile.samples.randomElement()!
-        let normalized = normalizeSegments(sample.segments, boundingBox: sample.boundingBox)
-        let breaks = sample.strokeBreakIndices.isEmpty ? [0] : sample.strokeBreakIndices
-        let splitPaths = splitByStrokeBreaks(normalized, breaks: breaks)
-        
+
+        // Natural variation (noise + slant), applied in normalized space.
         let noiseDamping = 1.0 / sqrt(Float(sampleCount))
-        var worldPaths: [[BezierSegment]] = []
-        for path in splitPaths {
-            let perturbed = addNoise(to: path, magnitude: noiseScale * 0.25 * noiseDamping)
-            let slanted = applySlant(to: perturbed, slant: sampleSlant(sampleCount: sampleCount))
-            let world = denormalizeSegments(slanted, position: position, size: targetSize, right: rightVector, up: upwardVector)
-            worldPaths.append(world)
+        let noiseMag = noiseScale * (profile.samples.count > 1 ? 0.15 : 0.25) * noiseDamping
+        let slant = sampleSlant(sampleCount: sampleCount)
+        normPaths = normPaths.map { applySlant(to: addNoise(to: $0, magnitude: noiseMag), slant: slant) }
+
+        // Lock every glyph to a consistent cap-height — resizing small or averaged
+        // samples *up* to match their neighbours — while preserving each glyph's own
+        // aspect ratio and baseline. This is what keeps Kon's output uniform whether
+        // a character was learned in onboarding or from a tiny in-app AR sample.
+        let laidOut = layoutGlyph(normPaths, position: position, height: charHeight,
+                                  right: rightVector, up: upwardVector)
+        return (laidOut.paths, laidOut.width)
+    }
+
+    /// Map normalized glyph paths into world space at a CONSISTENT cap-height.
+    /// Uses a single uniform scale derived from the glyph's height, so every
+    /// character shares the same vertical size and sits on the same baseline,
+    /// regardless of how large/small the captured sample was. The glyph's own
+    /// aspect ratio is preserved; only freak collapsed/exploded widths are clamped.
+    private func layoutGlyph(
+        _ paths: [[BezierSegment]],
+        position: SIMD3<Float>,
+        height: Float,
+        right: SIMD3<Float>,
+        up: SIMD3<Float>
+    ) -> (paths: [[BezierSegment]], width: Float) {
+        var minX: Float = .infinity, minY: Float = .infinity
+        var maxX: Float = -.infinity, maxY: Float = -.infinity
+        for path in paths {
+            for seg in path {
+                for p in [seg.startPoint, seg.controlPoint1, seg.controlPoint2, seg.endPoint] {
+                    minX = min(minX, p.x); minY = min(minY, p.y)
+                    maxX = max(maxX, p.x); maxY = max(maxY, p.y)
+                }
+            }
         }
-        
-        return (worldPaths, charWidth)
+        let bw = maxX - minX
+        let bh = maxY - minY
+        guard bw.isFinite, bh.isFinite, bh > 1e-5 else {
+            return (paths, defaultCharWidth)
+        }
+
+        // Uniform scale → identical cap-height for every glyph, aspect preserved.
+        let s = height / bh
+        // Clamp the rendered width so a degenerate-aspect sample can't render
+        // absurdly wide or razor-thin next to its neighbours.
+        let rawWidth = max(bw * s, 1e-5)
+        let width = min(max(rawWidth, height * 0.18), height * 1.4)
+        let widthScale = width / rawWidth
+
+        func place(_ p: SIMD3<Float>) -> SIMD3<Float> {
+            let lx = (p.x - minX) * s * widthScale
+            let ly = (p.y - minY) * s
+            return position + right * lx + up * ly
+        }
+        let out = paths.map { path in
+            path.map {
+                BezierSegment(
+                    startPoint: place($0.startPoint),
+                    controlPoint1: place($0.controlPoint1),
+                    controlPoint2: place($0.controlPoint2),
+                    endPoint: place($0.endPoint)
+                )
+            }
+        }
+        return (out, width)
     }
     
     /// Render a full string of text, returns array of (entity, strokeData) pairs
@@ -463,23 +513,6 @@ final class Kon {
     
     private func normalizePoint(_ p: SIMD3<Float>, _ bb: BoundingBox, _ w: Float, _ h: Float) -> SIMD3<Float> {
         SIMD3<Float>((p.x - bb.minX) / w, (p.y - bb.minY) / h, 0)
-    }
-    
-    /// Denormalize segments from [0,1] to world coordinates using a basis
-    private func denormalizeSegments(_ segments: [BezierSegment], position: SIMD3<Float>, size: SIMD2<Float>, right: SIMD3<Float>, up: SIMD3<Float>) -> [BezierSegment] {
-        segments.map { seg in
-            BezierSegment(
-                startPoint: denormalizePoint(seg.startPoint, position, size, right, up),
-                controlPoint1: denormalizePoint(seg.controlPoint1, position, size, right, up),
-                controlPoint2: denormalizePoint(seg.controlPoint2, position, size, right, up),
-                endPoint: denormalizePoint(seg.endPoint, position, size, right, up)
-            )
-        }
-    }
-    
-    private func denormalizePoint(_ p: SIMD3<Float>, _ position: SIMD3<Float>, _ size: SIMD2<Float>, _ right: SIMD3<Float>, _ up: SIMD3<Float>) -> SIMD3<Float> {
-        // Linear transformation: translation + (localX * rightVector) + (localY * upwardVector)
-        position + (right * (p.x * size.x)) + (up * (p.y * size.y))
     }
     
     /// Add random Gaussian-like noise to control points

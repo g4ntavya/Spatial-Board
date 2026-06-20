@@ -190,7 +190,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   aspect-ratio: 16 / 10;            /* consistent landscape frame */
   display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
-.canvas svg { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; color: var(--ink); }
+/* Fill the frame; the SVG's viewBox + preserveAspectRatio(meet) scales the
+   drawing to fit inside (letterboxed), so it never overflows or clips. */
+.canvas svg { width: 100%; height: 100%; display: block; color: var(--ink); }
 .canvas.placeholder { color: var(--text-3); padding: 64px; text-align: center; }
 
 .transcript { margin-top: 30px; }
