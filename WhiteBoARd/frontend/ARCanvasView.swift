@@ -2486,12 +2486,31 @@ struct ARCanvasView: UIViewRepresentable {
                 })
                 
                 let targetDepth = focalStroke?.depth ?? 0
-                
+
                 // EXTREMELY STRICT TOLERANCE: Lock to a 10-centimeter planar slab centered squarely around the focal stroke.
                 // Any strokes drawn physically further back or heavily out of bounds front are actively ignored.
-                let depthTolerance: Float = 0.10 
-                
+                let depthTolerance: Float = 0.10
+
                 projectedStrokes.removeAll { abs($0.depth - targetDepth) > depthTolerance }
+
+                // LATERAL CLUSTER LOCK: keep only strokes near the focal stroke on the
+                // plane, so Kon solves + places the answer next to the equation you're
+                // pointing at — not at the far right edge of every visible stroke
+                // (that was the "huge offset" bug).
+                if let focal = focalStroke {
+                    var sum = SIMD3<Float>(repeating: 0); var n: Float = 0
+                    for p in focal.originalStroke.points { sum += p.position; n += 1 }
+                    if n > 0 {
+                        let focalCentroid = sum / n
+                        let lateralRadius: Float = 0.45  // metres on the drawing plane
+                        projectedStrokes.removeAll { ps in
+                            var s = SIMD3<Float>(repeating: 0); var c: Float = 0
+                            for p in ps.originalStroke.points { s += p.position; c += 1 }
+                            guard c > 0 else { return true }
+                            return simd_distance(s / c, focalCentroid) > lateralRadius
+                        }
+                    }
+                }
             }
             
             // 3. Render purely high-contrast 2D black strokes on a white geometric board

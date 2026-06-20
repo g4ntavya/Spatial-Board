@@ -52,6 +52,9 @@ final class SyncService {
     /// Background sync on app exit, with a Live Activity for visible progress.
     func syncInBackground(context: ModelContext) {
         guard isConfigured, !isSyncing else { return }
+        // Single source of truth: never spin up a Live Activity / upload when the
+        // store is already fully synced (fixes the activity showing on every exit).
+        guard hasUnsynced(context: context) else { print("[Sync] background: nothing new — skipping"); return }
         #if canImport(UIKit)
         var bgTask: UIBackgroundTaskIdentifier = .invalid
         bgTask = UIApplication.shared.beginBackgroundTask(withName: "SpatialBoardSync") {

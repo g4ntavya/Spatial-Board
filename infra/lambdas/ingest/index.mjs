@@ -17,7 +17,8 @@ const rds = new RDSDataClient({});
 const sqs = new SQSClient({});
 const { CLUSTER_ARN, SECRET_ARN, DB_NAME, QUEUE_URL, SYNC_TOKEN } = process.env;
 
-const CLUSTER_RADIUS = 0.35; // metres — free strokes within this join one note
+const LINK_RADIUS = 0.16;    // metres — single-linkage gap inside one note (tight: keeps topics apart)
+const APPEND_RADIUS = 0.30;  // metres — a new cluster this close to an existing note re-joins it
 
 // ── Data API helpers ────────────────────────────────────────────────────────
 const uuid = (name, v) => ({ name, value: { stringValue: v }, typeHint: 'UUID' });
@@ -160,55 +161,106 @@ export const handler = async (event) => {
   }
 
   // ── Cluster strokes → notes ──
-  // Folder strokes: one note per folder. Free strokes: greedy spatial clustering.
+  // Strokes are grouped by (space, folder), then single-linkage clustered by
+  // NEAREST-MEMBER distance (not centroid) so a long line of writing stays one
+  // note while a separate topic 20cm away becomes its own note. This fixes
+  // unrelated content (e.g. "my name is …" and "4×4=16") being merged.
   const noteOf = new Map(); // strokeId -> noteId
-  const notes = new Map(); // noteId -> { spaceId, folderId, members:[], centroid }
+  const notes = new Map();  // noteId -> { spaceId, folderId, members:[], centroid, category }
 
-  const folderGroups = new Map();
-  const free = [];
-  for (const k of strokes) {
-    if (k.folderId) {
-      if (!folderGroups.has(k.folderId)) folderGroups.set(k.folderId, []);
-      folderGroups.get(k.folderId).push(k);
-    } else {
-      free.push(k);
-    }
-  }
+  const folderName = new Map(folders.map((f) => [f.id, f.name ?? 'Folder']));
+  const meanCentroid = (members) => {
+    const s = members.reduce((a, m) => {
+      const c = centroidOf(m.geometry);
+      return [a[0] + c[0], a[1] + c[1], a[2] + c[2]];
+    }, [0, 0, 0]);
+    const n = members.length || 1;
+    return [s[0] / n, s[1] / n, s[2] / n];
+  };
 
-  for (const [folderId, members] of folderGroups) {
-    const noteId = uuidFrom('note', 'folder', folderId);
-    const spaceId = folderSpace.get(folderId) ?? resolveSpace(members[0].spaceId);
-    notes.set(noteId, { spaceId, folderId, members, centroid: centroidOf(members[0].geometry) });
-    for (const m of members) noteOf.set(m.id, noteId);
-  }
-
-  // Greedy clustering per space for free strokes.
-  const bySpace = new Map();
-  for (const k of free) {
-    const sid = resolveSpace(k.spaceId);
-    if (!bySpace.has(sid)) bySpace.set(sid, []);
-    bySpace.get(sid).push(k);
-  }
-  for (const [spaceId, items] of bySpace) {
-    const clusters = [];
+  // Single-linkage: a stroke joins a cluster if it's within LINK_RADIUS of ANY
+  // member of that cluster; clusters that both match get merged.
+  function singleLinkage(items, radius) {
+    const cs = []; // { members:[stroke], pts:[centroid] }
     for (const k of items) {
       const c = centroidOf(k.geometry);
-      let hit = clusters.find((cl) => dist(cl.centroid, c) < CLUSTER_RADIUS);
-      if (!hit) {
-        hit = { members: [], centroid: c, sum: [0, 0, 0] };
-        clusters.push(hit);
+      const hits = [];
+      for (let i = 0; i < cs.length; i++) {
+        if (cs[i].pts.some((p) => dist(p, c) < radius)) hits.push(i);
       }
-      hit.members.push(k);
-      hit.sum = [hit.sum[0] + c[0], hit.sum[1] + c[1], hit.sum[2] + c[2]];
-      hit.centroid = hit.sum.map((v) => v / hit.members.length);
+      if (!hits.length) { cs.push({ members: [k], pts: [c] }); continue; }
+      const base = cs[hits[0]];
+      base.members.push(k); base.pts.push(c);
+      for (let j = hits.length - 1; j >= 1; j--) {
+        const m = cs[hits[j]];
+        base.members.push(...m.members); base.pts.push(...m.pts);
+        cs.splice(hits[j], 1);
+      }
     }
-    for (const cl of clusters) {
-      const ids = cl.members.map((m) => m.id).sort();
-      // Anchor the note id on the cluster's smallest stroke id (stable across
-      // re-syncs as strokes are added) rather than the full member set.
-      const noteId = uuidFrom('note', spaceId, ids[0]);
-      notes.set(noteId, { spaceId, folderId: null, members: cl.members, centroid: cl.centroid });
-      for (const m of cl.members) noteOf.set(m.id, noteId);
+    return cs.map((x) => x.members);
+  }
+
+  // Group by (space, folder|free)
+  const groups = new Map();
+  for (const k of strokes) {
+    const sid = resolveSpace(k.spaceId);
+    const fid = k.folderId ?? null;
+    const key = `${sid}|${fid ?? ''}`;
+    if (!groups.has(key)) groups.set(key, { spaceId: sid, folderId: fid, items: [] });
+    groups.get(key).items.push(k);
+  }
+
+  // Contextual append: pull existing FREE notes in the synced spaces so new
+  // strokes written right next to an old note (days later) re-join it instead of
+  // spawning a duplicate. Proximity is the signal the user asked for ("very close
+  // in distance"); the whole note is then re-OCR'd so the context stays coherent.
+  const syncedSpaceIds = [...new Set([...groups.values()].map((g) => g.spaceId))];
+  const existingFree = []; // { id, spaceId, centroid }
+  if (syncedSpaceIds.length) {
+    const res = await exec(
+      `SELECT id::text AS id, space_id::text AS sid, world_origin->'centroid' AS c
+         FROM notes
+        WHERE space_id = ANY(:sids::uuid[]) AND folder_id IS NULL AND (world_origin ? 'hash')`,
+      [{ name: 'sids', value: { stringValue: `{${syncedSpaceIds.join(',')}}` } }],
+    );
+    for (const r of res.records ?? []) {
+      let c = null;
+      try { c = JSON.parse(r[2]?.stringValue ?? 'null'); } catch { /* ignore */ }
+      if (Array.isArray(c) && c.length === 3) existingFree.push({ id: r[0].stringValue, spaceId: r[1].stringValue, centroid: c });
+    }
+  }
+
+  const addToNote = (noteId, fields, members) => {
+    if (notes.has(noteId)) {
+      const ex = notes.get(noteId);
+      ex.members.push(...members);
+      ex.centroid = meanCentroid(ex.members);
+    } else {
+      notes.set(noteId, { ...fields, members, centroid: meanCentroid(members) });
+    }
+    for (const m of members) noteOf.set(m.id, noteId);
+  };
+
+  for (const { spaceId, folderId, items } of groups.values()) {
+    for (const cl of singleLinkage(items, LINK_RADIUS)) {
+      const c = meanCentroid(cl);
+      let noteId = null;
+      if (folderId === null) {
+        // attach to the nearest existing free note if it's close enough
+        let best = null;
+        for (const e of existingFree) {
+          if (e.spaceId !== spaceId) continue;
+          const d = dist(e.centroid, c);
+          if (d < APPEND_RADIUS && (!best || d < best.d)) best = { id: e.id, d };
+        }
+        if (best) noteId = best.id;
+      }
+      const category = folderId !== null ? folderName.get(folderId) ?? 'Folder' : null;
+      if (!noteId) {
+        const ids = cl.map((m) => m.id).sort();
+        noteId = uuidFrom('note', spaceId, folderId ?? 'free', ids[0]);
+      }
+      addToNote(noteId, { spaceId, folderId, category }, cl);
     }
   }
 
@@ -235,15 +287,20 @@ export const handler = async (event) => {
       uuid('id', noteId),
       uuid('sid', n.spaceId),
       n.folderId ? uuid('fid', n.folderId) : { name: 'fid', value: { isNull: true } },
+      str('category', n.category ?? null),
       json('world', { centroid: n.centroid, hash }),
     ]);
   }
   if (noteRows.length) {
     await batch(
-      `INSERT INTO notes (id,space_id,folder_id,world_origin,status)
-       VALUES (:id,:sid,:fid,:world,'pending')
+      // Folder notes carry their folder name as the category (so in-app folders
+      // show up as folders on the web). Free notes leave category to the Process
+      // Lambda's classifier — and we never clobber that on re-sync.
+      `INSERT INTO notes (id,space_id,folder_id,category,world_origin,status)
+       VALUES (:id,:sid,:fid,:category,:world,'pending')
        ON CONFLICT (id) DO UPDATE SET
          folder_id = EXCLUDED.folder_id,
+         category = CASE WHEN EXCLUDED.folder_id IS NOT NULL THEN EXCLUDED.category ELSE notes.category END,
          world_origin = EXCLUDED.world_origin,
          updated_at = now(),
          status = CASE WHEN notes.world_origin->>'hash' IS DISTINCT FROM EXCLUDED.world_origin->>'hash'
@@ -275,7 +332,6 @@ export const handler = async (event) => {
   // After re-clustering, an ingest-made note can end up with no strokes (a ghost
   // duplicate). Delete those in the synced spaces. Seeded/demo notes have no
   // 'hash' in world_origin, so they're preserved.
-  const syncedSpaceIds = [...new Set(spaceRows.map((r) => r[0].value.stringValue))];
   if (syncedSpaceIds.length) {
     await exec(
       `DELETE FROM notes

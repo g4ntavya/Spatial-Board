@@ -152,10 +152,14 @@ const PROMPT = `You are reading a handwritten note drawn as dark ink strokes on 
 - Preserve line breaks, capitalization, punctuation, and math symbols (∫ Σ √ = ^ etc.).
 - Read letter by letter; do NOT autocorrect to a different word or invent text. If a single character is ambiguous, pick the most likely one.
 - If the page has several spatially separate clusters, transcribe each on its own line.
-Then label it. Pick the category by the note's PURPOSE:
-- Math (equations/working), To-do (lists/tasks/checkboxes), Idea (brainstorm/plans), Code (code/pseudocode), Diagram (mostly drawing/arrows), Notes (prose/everything else), Other (only if truly none fit).
+Then write a TITLE: a short, specific label for what the note is ABOUT, the way a person would name it. 3-6 words, Title Case.
+- Base it on the actual content. e.g. "my name is Gantavya" → "My Name"; "4×4=16" → "Multiplication Practice"; a grocery list → "Grocery List".
+- NEVER describe the medium or the act of writing: do not use the words "handwritten", "note", "drawing", "sketch", "page", or "text" in the title.
+Then pick the CATEGORY by the note's PURPOSE:
+- Math (numbers/equations/working — NOT plain sentences), To-do (lists/tasks/checkboxes), Idea (brainstorm/plans), Code (code/pseudocode), Diagram (mostly drawing/arrows), Notes (prose/sentences/everything else), Other (only if truly none fit).
+- A short prose sentence (like a name or a reminder) is Notes, not Math.
 Respond with ONLY this minified JSON, nothing before or after:
-{"text":"<exact transcription, or empty string if nothing is legible>","title":"<3 to 6 word title from the content>","category":"<one of: Math, To-do, Idea, Code, Diagram, Notes, Other>"}`;
+{"text":"<exact transcription, or empty string if nothing is legible>","title":"<specific 3-6 word content title>","category":"<one of: Math, To-do, Idea, Code, Diagram, Notes, Other>"}`;
 
 async function describe(png) {
   const out = await bedrock.send(
@@ -202,6 +206,14 @@ export const handler = async (event) => {
 };
 
 async function processNote(noteId) {
+  // A note inside an app folder gets its category from that folder — keep it.
+  const meta = await exec(
+    `SELECT notes.folder_id::text AS fid, f.name AS fname
+       FROM notes LEFT JOIN folders f ON f.id = notes.folder_id WHERE notes.id = :id`,
+    [{ name: 'id', value: { stringValue: noteId }, typeHint: 'UUID' }],
+  );
+  const folderCategory = meta.records?.[0]?.[0]?.stringValue ? meta.records[0][1]?.stringValue : null;
+
   const res = await exec(`SELECT geometry::text AS geo, color FROM strokes WHERE note_id = :nid`, [
     { name: 'nid', value: { stringValue: noteId }, typeHint: 'UUID' },
   ]);
@@ -230,6 +242,9 @@ async function processNote(noteId) {
   } catch (err) {
     console.error('OCR unavailable, rendering without text:', err?.name ?? err);
   }
+
+  // Folder membership wins over the classifier so the web folder stays stable.
+  if (folderCategory) category = folderCategory;
 
   const searchText = [title, text].filter(Boolean).join('. ');
 
