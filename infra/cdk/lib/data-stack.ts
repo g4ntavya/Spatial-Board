@@ -8,8 +8,9 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
  * Aurora Serverless v2 PostgreSQL + pgvector, reachable over the RDS Data API.
  *
  * Cost design:
- *  - serverlessV2MinCapacity: 0  → the cluster scales to zero (auto-pauses) when
- *    idle, so it costs ~$0 between demos and wakes on the next query (~15s cold).
+ *  - serverlessV2MinCapacity: 0.5  → the cluster stays warm (never auto-pauses), so
+ *    visits during the judging window never pay the ~15-25s cold-start resume. Costs
+ *    ~$0.06/hr (~$43/mo) while held; set back to 0 after judging to scale to zero.
  *  - VPC with natGateways: 0 + isolated subnets → no ~$32/mo NAT gateway. The Data
  *    API is an AWS service endpoint, so nothing in the VPC needs outbound internet.
  */
@@ -37,7 +38,7 @@ export class DataStack extends cdk.Stack {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       defaultDatabaseName: this.databaseName,
       enableDataApi: true,
-      serverlessV2MinCapacity: 0, // scale to zero when idle
+      serverlessV2MinCapacity: 0.5, // stay warm — no cold-start wait during judging (set to 0 to scale-to-zero after)
       serverlessV2MaxCapacity: 2, // hackathon ceiling
       writer: rds.ClusterInstance.serverlessV2('writer'),
       credentials: rds.Credentials.fromGeneratedSecret('postgres', {

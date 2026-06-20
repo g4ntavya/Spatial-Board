@@ -42,18 +42,33 @@ The login persists for 30 days, so you stay signed in across visits.
 
 ## The idea
 
-Spatial notetaking is great for *thinking* and terrible for *retrieval*. You can
-scatter ideas around a room in AR, but a week later you can't find anything. SpatialBoard
-closes that loop: the relationship between the two layers is **transformation, not
-mirroring**. The cloud does real work — spatial clustering, 2D projection, OCR,
-embedding, categorization — so the chaotic 3D capture becomes a calm, queryable archive.
+Flat screens quietly shrink how we think. Our minds are spatial — we remember *where*
+something was, we lay ideas out on a desk, we map arguments across a whiteboard — yet
+we still pour every thought into a rectangle and a scroll bar. In the era of spatial
+computing, why are we still designing *against* the way the brain actually works?
 
-- **Capture (iOS):** draw, organize, and solve math in 3D with hand gestures. No stylus,
-  no keyboard. Handwriting is reproduced in *your* style by an on-device engine (Kon).
-- **Transform (AWS):** stroke batches are clustered into notes, projected to SVG, read by
-  a vision LLM, embedded for semantic search, and titled/categorized automatically.
-- **Retrieve (web):** a fast three-pane library with hybrid search, ask-your-notes RAG,
-  folders, sharing, pinning, and a command palette.
+SpatialBoard is a bet on the opposite. Your room becomes the canvas. You write, sketch,
+and solve math by hand in the air with nothing but your hands — ideas live where you
+left them, at the scale you gave them, the way memory actually files things. It's
+thinking with your whole body and your whole space instead of a 13-inch glowing slab.
+
+But spatial capture has always had one fatal flaw: it's brilliant for *thinking* and
+useless for *retrieval*. Scatter ideas around a room and a week later you can't find
+anything. So SpatialBoard pairs the spatial canvas with a cloud brain that does the
+remembering for you. The phone captures the way your mind works; AWS quietly turns that
+chaos into a calm, searchable library you can come back to from anywhere.
+
+- **Think in space (iOS):** draw, organize, and solve math in 3D with hand gestures —
+  no stylus, no keyboard. Handwriting is reproduced in *your* style by an on-device
+  engine (Kon). Notes stay anchored to the real world, persistent across sessions.
+- **Let the cloud remember (AWS):** stroke batches are clustered into notes, projected
+  to SVG, read by a vision LLM, embedded for semantic search, and auto-titled and
+  categorized — transformation, not mirroring.
+- **Find it anywhere (web):** a fast library with hybrid keyword + semantic search,
+  ask-your-notes RAG, folders, sharing, pinning, and a command palette.
+
+The two halves are one product: a spatial-first way to think, backed by a cloud that
+makes everything you thought instantly findable.
 
 ---
 
@@ -117,20 +132,11 @@ Web source lives in [web/](web/); infrastructure-as-code (AWS CDK) in [infra/](i
 
 Kon reproduces handwriting in the user's own style and solves math written in the air.
 
-**On-device (shipping today):** onboarding captures A–Z letterforms; a segmentation +
-OCR pipeline feeds live glyph samples from your AR strokes into per-user style profiles;
-generated answers are rendered in your style with consistent cap-height layout. For math,
-Kon depth-culls to the physically nearest equation slab, sends an optimized image to
-Gemini, and writes the answer back into AR right next to the equation.
-
-**Research model (in [train/](train/)):** a from-scratch **flow-matching Diffusion
-Transformer** for personalized, bilingual (English + math) online handwriting synthesis —
-a content encoder (letters/digits/math + 2D layout levels for fractions/super/subscripts),
-a few-glyph style encoder conditioning DiT blocks via AdaLN-Zero, and a rectified-flow
-sampler with classifier-free guidance emitting `[pen, Δx, Δy]` trajectories. Trained on
-IAM-OnDB (English) + CROHME (math). Design notes: [train/SOTA_DESIGN.md](train/SOTA_DESIGN.md),
-diagram: [train/ARCHITECTURE.md](train/ARCHITECTURE.md). (The hackathon build uses the
-on-device engine; the flow model is ongoing research.)
+Onboarding captures A–Z letterforms; a segmentation + OCR pipeline feeds live glyph
+samples from your AR strokes into per-user style profiles, so generated text is rendered
+in *your* handwriting with consistent cap-height layout. For math, Kon depth-culls to the
+physically nearest equation slab, sends an optimized image to Gemini, and writes the
+answer back into AR right next to the equation.
 
 ---
 
@@ -185,7 +191,6 @@ SpatialBoard/
 ├── infra/                   # AWS CDK (TypeScript) + DB schema + Lambdas
 │   ├── db/schema.sql        # Aurora schema (pgvector, tsvector, JSONB)
 │   └── lambdas/             # ingest · process · auth
-├── train/                   # Kon-Flow research model (flow-matching DiT)
 ├── landing_page/            # Marketing site
 └── docs/                    # ARCHITECTURE, AWS_PLAN, DEPLOY, AUTH_SETUP
 ```

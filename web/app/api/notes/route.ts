@@ -6,6 +6,17 @@ import { userIdFromEmail } from '@/lib/identity';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Build the keyword matchers from a raw query. Full-text alone only matches whole
+// lexemes (so "ganta" misses "gantavya"); we add:
+//  - tsq: a *prefix* tsquery ("ganta:*") so a term matches the start of a word, and
+//  - like: an ILIKE '%…%' pattern so a term found anywhere inside a word still matches.
+function buildKeyword(q: string) {
+  const like = `%${q.replace(/[%_\\]/g, '\\$&')}%`; // escape LIKE wildcards
+  const tokens = q.split(/\s+/).map((t) => t.replace(/[^\p{L}\p{N}]+/gu, '')).filter(Boolean);
+  const tsq = tokens.length ? tokens.map((t) => `${t}:*`).join(' & ') : 'zzzznomatchzzzz';
+  return { like, tsq };
+}
+
 // GET /api/notes?space=<uuid>&q=<query>&mode=keyword|semantic
 export async function GET(req: Request) {
   const session = await auth();
@@ -28,6 +39,7 @@ export async function GET(req: Request) {
     // contributes 1/(k+rank); a note strong in either — or both — rises to the top.
     if (q && mode === 'hybrid') {
       const vec = await embedQuery(q);
+      const { like, tsq } = buildKeyword(q);
       const rows = await query(
         `WITH sem AS (
            SELECT id, ROW_NUMBER() OVER (ORDER BY (embedding <=> :v::vector) ASC) AS rnk
@@ -37,9 +49,10 @@ export async function GET(req: Request) {
          ),
          kw AS (
            SELECT id, ROW_NUMBER() OVER (
-                    ORDER BY ts_rank_cd(search_vector, plainto_tsquery('english', :q)) DESC) AS rnk
+                    ORDER BY ts_rank_cd(search_vector, to_tsquery('english', :tsq)) DESC) AS rnk
              FROM notes
-            WHERE ${owned} AND search_vector @@ plainto_tsquery('english', :q)
+            WHERE ${owned} AND (search_vector @@ to_tsquery('english', :tsq)
+                                OR title ILIKE :like OR ocr_text ILIKE :like)
             LIMIT 40
          ),
          fused AS (
@@ -51,7 +64,7 @@ export async function GET(req: Request) {
                 n.updated_at::text AS updated_at, n.pinned, f.score
            FROM fused f JOIN notes n ON n.id = f.id
           ORDER BY f.score DESC LIMIT 30`,
-        [str('v', `[${vec.join(',')}]`), str('s', space), str('uid', uid), str('q', q)],
+        [str('v', `[${vec.join(',')}]`), str('s', space), str('uid', uid), str('tsq', tsq), str('like', like)],
       );
       return Response.json(rows);
     }
@@ -72,11 +85,13 @@ export async function GET(req: Request) {
     }
 
     if (q) {
+      const { like, tsq } = buildKeyword(q);
       const rows = await query(
         `SELECT ${cols} FROM notes
-          WHERE ${owned} AND search_vector @@ plainto_tsquery('english', :q)
-          ORDER BY updated_at DESC LIMIT 50`,
-        [str('s', space), str('uid', uid), str('q', q)],
+          WHERE ${owned} AND (search_vector @@ to_tsquery('english', :tsq)
+                              OR title ILIKE :like OR ocr_text ILIKE :like)
+          ORDER BY ts_rank_cd(search_vector, to_tsquery('english', :tsq)) DESC, updated_at DESC LIMIT 50`,
+        [str('s', space), str('uid', uid), str('tsq', tsq), str('like', like)],
       );
       return Response.json(rows);
     }
