@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS notes (
     search_vector tsvector,                    -- keyword search
     embedding     vector(1024),                -- Titan v2 embedding, semantic search
     world_origin  jsonb,                       -- "where you wrote it" cue
+    pinned        boolean NOT NULL DEFAULT false,  -- user-pinned to top of the list
     status        text NOT NULL DEFAULT 'pending',  -- pending | processed | failed
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now()

@@ -41,13 +41,13 @@ export async function GET(req: Request) {
   }
 }
 
-// PATCH /api/note  { id, category?, title? } — manual move (change folder) / rename.
+// PATCH /api/note  { id, category?, title?, pinned? } — move/rename/pin.
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.email) return Response.json({ error: 'unauthorized' }, { status: 401 });
   const uid = userIdFromEmail(session.user.email);
 
-  let body: { id?: string; category?: string; title?: string } = {};
+  let body: { id?: string; category?: string; title?: string; pinned?: boolean } = {};
   try { body = await req.json(); } catch { /* ignore */ }
   if (!body.id) return Response.json({ error: 'id required' }, { status: 400 });
 
@@ -55,6 +55,7 @@ export async function PATCH(req: Request) {
   const params = [str('id', body.id), str('uid', uid)];
   if (typeof body.category === 'string') { sets.push('category = :category'); params.push(str('category', body.category)); }
   if (typeof body.title === 'string') { sets.push('title = :title'); params.push(str('title', body.title)); }
+  if (typeof body.pinned === 'boolean') { sets.push('pinned = :pinned'); params.push({ name: 'pinned', value: { booleanValue: body.pinned } }); }
   if (!sets.length) return Response.json({ error: 'nothing to update' }, { status: 400 });
 
   try {

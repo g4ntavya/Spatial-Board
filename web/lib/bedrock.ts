@@ -1,6 +1,23 @@
-import { BedrockRuntimeClient, InvokeModelCommand, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient, InvokeModelCommand, ConverseCommand, ConverseStreamCommand } from '@aws-sdk/client-bedrock-runtime';
 
 const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION ?? 'us-east-1' });
+
+/** Stream a Nova answer token-by-token (used to stream RAG answers to the UI). */
+export async function* answerStream(system: string, user: string): AsyncGenerator<string> {
+  const out = await client.send(
+    new ConverseStreamCommand({
+      modelId: process.env.BEDROCK_CHAT_MODEL_ID ?? 'amazon.nova-pro-v1:0',
+      system: [{ text: system }],
+      messages: [{ role: 'user', content: [{ text: user }] }],
+      inferenceConfig: { maxTokens: 600, temperature: 0.2 },
+    }),
+  );
+  if (!out.stream) return;
+  for await (const ev of out.stream) {
+    const t = ev.contentBlockDelta?.delta?.text;
+    if (t) yield t;
+  }
+}
 
 /** Ask Amazon Nova a question with a system instruction (used for RAG answers). */
 export async function answer(system: string, user: string): Promise<string> {

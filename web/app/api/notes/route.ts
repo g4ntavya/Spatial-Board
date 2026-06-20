@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   const mode = searchParams.get('mode') ?? 'keyword';
   if (!space) return Response.json([], { status: 200 });
 
-  const cols = `id::text AS id, title, category, ocr_text, status, updated_at::text AS updated_at`;
+  const cols = `id::text AS id, title, category, ocr_text, status, updated_at::text AS updated_at, pinned`;
   // Only notes in a space owned by the signed-in user.
   const owned = `space_id = :s::uuid AND space_id IN (SELECT id FROM spaces WHERE user_id = :uid::uuid)`;
 
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
              FROM sem FULL OUTER JOIN kw ON sem.id = kw.id
          )
          SELECT n.id::text AS id, n.title, n.category, n.ocr_text, n.status,
-                n.updated_at::text AS updated_at, f.score
+                n.updated_at::text AS updated_at, n.pinned, f.score
            FROM fused f JOIN notes n ON n.id = f.id
           ORDER BY f.score DESC LIMIT 30`,
         [str('v', `[${vec.join(',')}]`), str('s', space), str('uid', uid), str('q', q)],
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
     }
 
     const rows = await query(
-      `SELECT ${cols} FROM notes WHERE ${owned} ORDER BY updated_at DESC LIMIT 100`,
+      `SELECT ${cols} FROM notes WHERE ${owned} ORDER BY pinned DESC, updated_at DESC LIMIT 100`,
       [str('s', space), str('uid', uid)],
     );
     return Response.json(rows);
