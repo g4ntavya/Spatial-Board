@@ -22,6 +22,7 @@ export async function GET(req: Request) {
         WHERE n.id <> :id::uuid
           AND n.embedding IS NOT NULL AND src.embedding IS NOT NULL
           AND n.space_id IN (SELECT id FROM spaces WHERE user_id = :uid::uuid)
+          AND (n.embedding <=> src.embedding) < 0.8   -- only meaningfully related
         ORDER BY n.embedding <=> src.embedding
         LIMIT 4`,
       [str('id', id), str('uid', uid)],

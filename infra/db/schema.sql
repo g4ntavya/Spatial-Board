@@ -83,3 +83,19 @@ CREATE INDEX IF NOT EXISTS notes_space_idx   ON notes (space_id);
 CREATE INDEX IF NOT EXISTS notes_category_idx ON notes (space_id, category);
 CREATE INDEX IF NOT EXISTS strokes_note_idx  ON strokes (note_id);
 CREATE INDEX IF NOT EXISTS folders_space_idx ON folders (space_id);
+
+-- ---------------------------------------------------------------------------
+-- Note sharing — a note shared by its owner with another user (by email).
+-- mode controls what the recipient sees: 'strokes' (handwriting only),
+-- 'text' (transcription only), or 'both'.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS note_shares (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    note_id      uuid NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+    owner_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    recipient_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mode         text NOT NULL DEFAULT 'both',
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (note_id, recipient_id)
+);
+CREATE INDEX IF NOT EXISTS note_shares_recipient_idx ON note_shares (recipient_id);
