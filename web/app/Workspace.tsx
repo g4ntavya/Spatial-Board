@@ -66,6 +66,27 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), action ? 6000 : 3200);
   }, []);
 
+  // Long-press → folder actions (mobile has no right-click). Hold ~480ms on a
+  // folder to open the same menu the context-menu shows on desktop.
+  const longPress = useRef<{ timer: ReturnType<typeof setTimeout> | null; fired: boolean }>({ timer: null, fired: false });
+  const folderHold = (category: string) => ({
+    onTouchStart: (e: React.TouchEvent) => {
+      const t = e.touches[0];
+      longPress.current.fired = false;
+      longPress.current.timer = setTimeout(() => {
+        longPress.current.fired = true;
+        navigator.vibrate?.(10);
+        setFolderMenu({
+          category,
+          top: clamp(t.clientY, 8, window.innerHeight - 90),
+          left: clamp(t.clientX, 8, window.innerWidth - 230),
+        });
+      }, 480);
+    },
+    onTouchMove: () => { if (longPress.current.timer) { clearTimeout(longPress.current.timer); longPress.current.timer = null; } },
+    onTouchEnd: () => { if (longPress.current.timer) { clearTimeout(longPress.current.timer); longPress.current.timer = null; } },
+  });
+
   // ── Responsive + ⌘K ──
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 760px)');
@@ -337,7 +358,7 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
         <button className="expand-btn" onClick={() => setCollapsed(false)} aria-label="Show sidebar"><ExpandIcon /></button>
       )}
       {/* Sidebar */}
-      <aside className={`sidebar ${isMobile ? 'is-drawer' : ''}`} style={isMobile ? undefined : { display: collapsed ? 'none' : undefined }}>
+      <aside className={`sidebar ${isMobile ? 'is-drawer' : ''}`}>
         <div className="side-top">
           <span className="brand">SpatialBoard</span>
           <div className="side-top-actions">
@@ -384,8 +405,9 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
           <button
             key={c.category}
             className={`folder-row ${!sharedView && activeCategory === c.category ? 'active' : ''}`}
-            onClick={() => { setSharedView(false); setActiveCategory(c.category); setSidebarOpen(false); }}
+            onClick={() => { if (longPress.current.fired) { longPress.current.fired = false; return; } setSharedView(false); setActiveCategory(c.category); setSidebarOpen(false); }}
             onContextMenu={(e) => { e.preventDefault(); setFolderMenu({ category: c.category, top: clamp(e.clientY, 8, window.innerHeight - 90), left: clamp(e.clientX, 8, window.innerWidth - 230) }); }}
+            {...folderHold(c.category)}
           >
             <FolderIcon /> <span>{c.category}</span><span className="folder-count">{c.n || ''}</span>
           </button>
