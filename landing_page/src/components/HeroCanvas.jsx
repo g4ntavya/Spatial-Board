@@ -36,6 +36,7 @@ void main() {
 
 function compile(gl, type, src) {
   const s = gl.createShader(type);
+  if (!s) return null; // context lost / unavailable
   gl.shaderSource(s, src);
   gl.compileShader(s);
   if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
@@ -53,7 +54,11 @@ export default function HeroCanvas() {
     const canvas = ref.current;
     if (!canvas) return;
     const gl = canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: false });
-    if (!gl) return; // no WebGL → just the dark hero, no crash
+    if (!gl || gl.isContextLost()) return; // no WebGL / lost → just the dark hero, no crash
+
+    // If the GPU drops the context at runtime, stop the loop instead of throwing.
+    const onLost = (e) => e.preventDefault();
+    canvas.addEventListener('webglcontextlost', onLost, false);
 
     const vs = compile(gl, gl.VERTEX_SHADER, VERT);
     const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
@@ -135,7 +140,9 @@ export default function HeroCanvas() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onMove);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      canvas.removeEventListener('webglcontextlost', onLost, false);
+      // NOTE: do NOT call loseContext() here — under StrictMode's mount→unmount→
+      // remount the canvas is reused, and losing the context breaks the remount.
     };
   }, []);
 
