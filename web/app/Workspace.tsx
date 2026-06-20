@@ -124,24 +124,33 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
     const paths = Array.from(el.querySelectorAll('path')) as SVGPathElement[];
     if (!paths.length) return;
 
-    type Info = { p: SVGPathElement; len: number; x: number; y: number; h: number };
+    type Info = { p: SVGPathElement; len: number; x: number; cy: number; h: number };
     const info: Info[] = paths.map((p) => {
-      let len = 0, x = 0, y = 0, h = 0;
-      try { len = p.getTotalLength(); const b = p.getBBox(); x = b.x; y = b.y; h = b.height; } catch { /* ignore */ }
+      let len = 0, x = 0, cy = 0, h = 0;
+      try { len = p.getTotalLength(); const b = p.getBBox(); x = b.x; cy = b.y + b.height / 2; h = b.height; } catch { /* ignore */ }
       const ok = len > 0 && isFinite(len);
       if (ok) { p.style.strokeDasharray = String(len); p.style.strokeDashoffset = String(len); } // hide now (no flash)
-      return { p, len: ok ? len : 0, x, y, h };
+      return { p, len: ok ? len : 0, x, cy, h };
     });
 
-    // reading order: bucket strokes into lines by a vertical band, then left→right
-    const heights = info.map((o) => o.h).filter((v) => v > 0).sort((a, b) => a - b);
-    const band = Math.max((heights[Math.floor(heights.length / 2)] || 20) * 0.7, 1);
-    info.sort((a, b) => {
-      const la = Math.round(a.y / band), lb = Math.round(b.y / band);
-      return la !== lb ? la - lb : a.x - b.x;
-    });
-
-    const drawable = info.filter((o) => o.len > 0);
+    // Reading order. Group strokes into lines by vertical *center* (so a tall
+    // letter and a short one on the same line stay together), then strictly
+    // left→right within each line. Greedy grouping against a running line center
+    // avoids the off-by-one a hard bucket grid causes when strokes straddle an
+    // edge — that was making the pen jump ahead a letter and then back.
+    const all = info.filter((o) => o.len > 0);
+    const heights = all.map((o) => o.h).filter((v) => v > 0).sort((a, b) => a - b);
+    const band = Math.max((heights[heights.length >> 1] || 20) * 0.6, 1);
+    const lines: Info[][] = [];
+    let cur: Info[] = [];
+    let curCenter = 0;
+    for (const o of [...all].sort((a, b) => a.cy - b.cy)) {
+      if (cur.length && Math.abs(o.cy - curCenter) > band) { lines.push(cur); cur = []; }
+      cur.push(o);
+      curCenter = cur.reduce((s, k) => s + k.cy, 0) / cur.length;
+    }
+    if (cur.length) lines.push(cur);
+    const drawable = lines.flatMap((line) => line.sort((a, b) => a.x - b.x));
     const total = drawable.reduce((s, o) => s + o.len, 0) || 1;
     const budget = Math.min(5500, Math.max(2200, drawable.length * 260)); // ms — scales w/ #strokes
     const speed = total / budget; // svg-units per ms (constant pen speed)
