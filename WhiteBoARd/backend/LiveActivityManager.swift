@@ -24,7 +24,11 @@ final class LiveActivityManager {
     var isRunning: Bool { activityID != nil }
 
     func start(total: Int) {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled, activityID == nil else { return }
+        guard activityID == nil else { return }
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            print("[LiveActivity] NOT enabled — set NSSupportsLiveActivities=YES in the app Info.plist, build the widget extension, and turn on Live Activities in Settings ▸ SpatialBoard")
+            return
+        }
         let state = SyncActivityAttributes.ContentState(
             phase: .uploading, uploaded: 0, total: total,
             message: total > 0 ? "Uploading \(total) stroke\(total == 1 ? "" : "s")…" : "Uploading…"

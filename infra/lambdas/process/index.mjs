@@ -96,7 +96,8 @@ function encodePng(gray, W, H) {
 }
 
 // Rasterize polylines into a grayscale buffer (black ink on white).
-function rasterize(proj, W = 768) {
+// Higher resolution = noticeably better OCR.
+function rasterize(proj, W = 1024) {
   const w = Math.max(proj.maxX - proj.minX, 1e-4);
   const h = Math.max(proj.maxY - proj.minY, 1e-4);
   const pad = 0.06 * Math.max(w, h);
@@ -105,8 +106,8 @@ function rasterize(proj, W = 768) {
   const g = Buffer.alloc(W * H, 255);
   const plot = (x, y) => {
     const xi = Math.round(x), yi = Math.round(y);
-    for (let dy = -2; dy <= 2; dy++)
-      for (let dx = -2; dx <= 2; dx++) {
+    for (let dy = -3; dy <= 3; dy++)
+      for (let dx = -3; dx <= 3; dx++) {
         const px = xi + dx, py = yi + dy;
         if (px >= 0 && px < W && py >= 0 && py < H) g[py * W + px] = 0;
       }
@@ -127,9 +128,14 @@ function rasterize(proj, W = 768) {
 }
 
 // ── Bedrock ──────────────────────────────────────────────────────────────────
-const PROMPT = `This image is a handwritten note captured in 3D (AR) space. Read the handwriting and transcribe it as accurately as possible, preserving line breaks. If the note clearly contains multiple distinct topics, transcribe them all but base the title/category on the dominant topic.
-Reply with ONLY a minified JSON object and nothing else:
-{"text":"<verbatim transcription, or empty string if illegible>","title":"<concise title, max 6 words>","category":"<exactly one of: Math, Notes, To-do, Diagram, Idea, Code, Other>"}`;
+const PROMPT = `You are reading a handwritten note drawn as dark ink strokes on a blank page (captured in AR). Transcribe it EXACTLY:
+- Preserve line breaks, capitalization, punctuation, and math symbols (∫ Σ √ = ^ etc.).
+- Read letter by letter; do NOT autocorrect to a different word or invent text. If a single character is ambiguous, pick the most likely one.
+- If the page has several spatially separate clusters, transcribe each on its own line.
+Then label it. Pick the category by the note's PURPOSE:
+- Math (equations/working), To-do (lists/tasks/checkboxes), Idea (brainstorm/plans), Code (code/pseudocode), Diagram (mostly drawing/arrows), Notes (prose/everything else), Other (only if truly none fit).
+Respond with ONLY this minified JSON, nothing before or after:
+{"text":"<exact transcription, or empty string if nothing is legible>","title":"<3 to 6 word title from the content>","category":"<one of: Math, To-do, Idea, Code, Diagram, Notes, Other>"}`;
 
 async function describe(png) {
   const out = await bedrock.send(

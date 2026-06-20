@@ -204,7 +204,9 @@ export const handler = async (event) => {
     }
     for (const cl of clusters) {
       const ids = cl.members.map((m) => m.id).sort();
-      const noteId = uuidFrom('note', spaceId, ids.join(','));
+      // Anchor the note id on the cluster's smallest stroke id (stable across
+      // re-syncs as strokes are added) rather than the full member set.
+      const noteId = uuidFrom('note', spaceId, ids[0]);
       notes.set(noteId, { spaceId, folderId: null, members: cl.members, centroid: cl.centroid });
       for (const m of cl.members) noteOf.set(m.id, noteId);
     }
@@ -266,6 +268,21 @@ export const handler = async (event) => {
         str('color', k.color),
         num('thick', k.thickness),
       ]),
+    );
+  }
+
+  // ── Remove orphaned notes ──
+  // After re-clustering, an ingest-made note can end up with no strokes (a ghost
+  // duplicate). Delete those in the synced spaces. Seeded/demo notes have no
+  // 'hash' in world_origin, so they're preserved.
+  const syncedSpaceIds = [...new Set(spaceRows.map((r) => r[0].value.stringValue))];
+  if (syncedSpaceIds.length) {
+    await exec(
+      `DELETE FROM notes
+         WHERE space_id = ANY(:sids::uuid[])
+           AND (world_origin ? 'hash')
+           AND NOT EXISTS (SELECT 1 FROM strokes s WHERE s.note_id = notes.id)`,
+      [{ name: 'sids', value: { stringValue: `{${syncedSpaceIds.join(',')}}` } }],
     );
   }
 

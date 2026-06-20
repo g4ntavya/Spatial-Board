@@ -20,9 +20,10 @@ final class SyncCoordinator {
 
     /// App is leaving the foreground (swiping to Home / app switcher / Control Center).
     func sceneBecameInactive(context: ModelContext) {
-        guard SyncService.shared.isConfigured,
-              AuthService.shared.isSignedIn,
-              SyncService.shared.hasUnsynced(context: context) else { return }
+        guard SyncService.shared.isConfigured else { print("[Sync] leaving: not configured (.env missing SPATIALBOARD_SYNC_URL/TOKEN?)"); return }
+        guard AuthService.shared.isSignedIn else { print("[Sync] leaving: not signed in"); return }
+        guard SyncService.shared.hasUnsynced(context: context) else { print("[Sync] leaving: nothing new to sync — Live Activity only shows when there's new content"); return }
+        print("[Sync] leaving with unsynced content → starting Live Activity + upload")
         // Start the Live Activity synchronously while we're still foreground…
         if #available(iOS 16.2, *) {
             LiveActivityManager.shared.start(total: 0)
