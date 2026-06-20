@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import CustomCursor from './components/CustomCursor';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Notice from './components/Notice';
@@ -23,6 +24,7 @@ function App() {
 
   return (
     <>
+      <CustomCursor />
       <Navbar />
       <main>
         <Hero />

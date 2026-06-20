@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { shouldAnimate } from '../lib/motion';
+import HeroCanvas from './HeroCanvas';
+import Magnetic from './Magnetic';
 import './Hero.css';
 
 export default function Hero() {
@@ -21,6 +23,7 @@ export default function Hero() {
 
   return (
     <header ref={heroRef} className="hero" id="top">
+      <HeroCanvas />
       <div className="container hero-inner">
         <div className="hero-tags">
           <span className="hero-tag eyebrow">SpatialBoard</span>
@@ -40,24 +43,28 @@ export default function Hero() {
         </p>
 
         <div className="hero-ctas">
-          <a
-            href="https://youtu.be/NDZyi6bChMY"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hero-cta hero-cta--primary"
-            id="hero-demo-btn"
-          >
-            Watch the demo
-          </a>
-          <a
-            href="https://github.com/g4ntavya/Spatial-Board"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hero-cta hero-cta--ghost"
-            id="hero-source-btn"
-          >
-            View source
-          </a>
+          <Magnetic>
+            <a
+              href="https://youtu.be/NDZyi6bChMY"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hero-cta hero-cta--primary"
+              id="hero-demo-btn"
+            >
+              Watch the demo
+            </a>
+          </Magnetic>
+          <Magnetic>
+            <a
+              href="https://github.com/g4ntavya/Spatial-Board"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hero-cta hero-cta--ghost"
+              id="hero-source-btn"
+            >
+              View source
+            </a>
+          </Magnetic>
         </div>
 
         <div className="hero-meta">
