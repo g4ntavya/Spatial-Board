@@ -1,4 +1,11 @@
-import { scryptSync, timingSafeEqual } from 'crypto';
+import { scryptSync, timingSafeEqual, randomBytes } from 'crypto';
+
+// Produces "scrypt$<saltHex>$<hashHex>" — identical format + params to the auth
+// Lambda, so accounts created on web and iOS are interchangeable.
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16);
+  return `scrypt$${salt.toString('hex')}$${scryptSync(password, salt, 64).toString('hex')}`;
+}
 
 // Verifies a password against a stored "scrypt$<saltHex>$<hashHex>" value —
 // the same format the auth Lambda writes.

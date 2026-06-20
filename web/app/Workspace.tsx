@@ -24,7 +24,7 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
   const [activeId, setActiveId] = useState<string | undefined>(spaces[0]?.id);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [query, setQuery] = useState('');
-  const [mode, setMode] = useState<'keyword' | 'semantic'>('keyword');
+  const [mode, setMode] = useState<'hybrid' | 'keyword' | 'semantic'>('hybrid');
   const [notes, setNotes] = useState<Note[]>([]);
   const [categories, setCategories] = useState<CategoryCount[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -287,6 +287,7 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
           <input placeholder={sharedView ? 'Search shared…' : 'Search notes…'} value={query} onChange={(e) => setQuery(e.target.value)} disabled={sharedView} />
           {!sharedView && (
             <div className="modes">
+              <button className={mode === 'hybrid' ? 'on' : ''} onClick={() => setMode('hybrid')} title="Keyword + semantic, fused (RRF)">Hybrid</button>
               <button className={mode === 'keyword' ? 'on' : ''} onClick={() => setMode('keyword')}>Keyword</button>
               <button className={mode === 'semantic' ? 'on' : ''} onClick={() => setMode('semantic')}>Semantic</button>
             </div>

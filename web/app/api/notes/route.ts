@@ -23,6 +23,39 @@ export async function GET(req: Request) {
   const owned = `space_id = :s::uuid AND space_id IN (SELECT id FROM spaces WHERE user_id = :uid::uuid)`;
 
   try {
+    // Hybrid: fuse keyword (tsvector) and semantic (pgvector) rankings with
+    // Reciprocal Rank Fusion (RRF, k=60) in a single Aurora query. Each ranker
+    // contributes 1/(k+rank); a note strong in either — or both — rises to the top.
+    if (q && mode === 'hybrid') {
+      const vec = await embedQuery(q);
+      const rows = await query(
+        `WITH sem AS (
+           SELECT id, ROW_NUMBER() OVER (ORDER BY (embedding <=> :v::vector) ASC) AS rnk
+             FROM notes
+            WHERE ${owned} AND embedding IS NOT NULL AND (embedding <=> :v::vector) < 0.9
+            ORDER BY (embedding <=> :v::vector) ASC LIMIT 40
+         ),
+         kw AS (
+           SELECT id, ROW_NUMBER() OVER (
+                    ORDER BY ts_rank_cd(search_vector, plainto_tsquery('english', :q)) DESC) AS rnk
+             FROM notes
+            WHERE ${owned} AND search_vector @@ plainto_tsquery('english', :q)
+            LIMIT 40
+         ),
+         fused AS (
+           SELECT COALESCE(sem.id, kw.id) AS id,
+                  COALESCE(1.0 / (60 + sem.rnk), 0) + COALESCE(1.0 / (60 + kw.rnk), 0) AS score
+             FROM sem FULL OUTER JOIN kw ON sem.id = kw.id
+         )
+         SELECT n.id::text AS id, n.title, n.category, n.ocr_text, n.status,
+                n.updated_at::text AS updated_at, f.score
+           FROM fused f JOIN notes n ON n.id = f.id
+          ORDER BY f.score DESC LIMIT 30`,
+        [str('v', `[${vec.join(',')}]`), str('s', space), str('uid', uid), str('q', q)],
+      );
+      return Response.json(rows);
+    }
+
     if (q && mode === 'semantic') {
       const vec = await embedQuery(q);
       // Only return notes that are actually related — cosine distance below a

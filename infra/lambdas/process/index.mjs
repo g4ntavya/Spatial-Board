@@ -149,9 +149,10 @@ function rasterize(proj, W = 1024) {
 
 // ── Bedrock ──────────────────────────────────────────────────────────────────
 const PROMPT = `You are reading a handwritten note drawn as dark ink strokes on a blank page (captured in AR). Transcribe it EXACTLY:
+- Read in natural reading order: top-to-bottom, then left-to-right, so the transcription is coherent and logically ordered even when content was added later.
 - Preserve line breaks, capitalization, punctuation, and math symbols (∫ Σ √ = ^ etc.).
 - Read letter by letter; do NOT autocorrect to a different word or invent text. If a single character is ambiguous, pick the most likely one.
-- If the page has several spatially separate clusters, transcribe each on its own line.
+- If the page has several spatially separate clusters, transcribe each on its own line, in reading order.
 Then write a TITLE: a short, specific label for what the note is ABOUT, the way a person would name it. 3-6 words, Title Case.
 - Base it on the actual content. e.g. "my name is Gantavya" → "My Name"; "4×4=16" → "Multiplication Practice"; a grocery list → "Grocery List".
 - NEVER describe the medium or the act of writing: do not use the words "handwritten", "note", "drawing", "sketch", "page", or "text" in the title.

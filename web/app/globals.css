@@ -247,6 +247,8 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .signin-btn { margin-top: 4px; width: 100%; justify-content: center; display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; background: var(--text); color: var(--bg); }
 .signin-btn:hover { opacity: 0.9; }
 .signin-btn:disabled { opacity: 0.6; }
+.signin-switch { margin-top: 10px; width: 100%; background: none; border: none; color: var(--text-3); font-size: 13px; cursor: pointer; }
+.signin-switch:hover { color: var(--text); text-decoration: underline; }
 
 /* ── Resizable / collapsible columns ── */
 .sidebar, .list { position: relative; }
