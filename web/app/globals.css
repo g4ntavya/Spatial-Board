@@ -251,6 +251,10 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .signin-btn:disabled { opacity: 0.6; }
 .signin-switch { margin-top: 10px; width: 100%; background: none; border: none; color: var(--text-3); font-size: 13px; cursor: pointer; }
 .signin-switch:hover { color: var(--text); text-decoration: underline; }
+.signin-pw { position: relative; display: flex; }
+.signin-pw .signin-input { width: 100%; padding-right: 44px; }
+.signin-eye { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: var(--text-3); }
+.signin-eye:hover { color: var(--text); background: var(--hover); }
 
 /* ── Resizable / collapsible columns ── */
 .sidebar, .list { position: relative; }
@@ -359,15 +363,6 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 
 /* matched-term highlight */
 .hl { background: color-mix(in srgb, var(--accent) 38%, transparent); color: inherit; border-radius: 3px; padding: 0 1.5px; }
-
-/* spatial position chip + mini map */
-.tag-spatial { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.spatial { margin-top: 18px; }
-.spatial-rel { color: var(--accent-strong); font-weight: 600; }
-.spatial-map { display: block; margin-top: 8px; width: 184px; height: 110px; }
-.spatial-frame { fill: var(--hover); stroke: var(--line); stroke-width: 1; }
-.spatial-dot { fill: var(--text-3); transition: r 0.2s; }
-.spatial-dot.sel { fill: var(--accent); stroke: var(--bg); stroke-width: 1.5; }
 
 @media (prefers-reduced-motion: reduce) {
   .note-card, .skel-card { animation: none; }

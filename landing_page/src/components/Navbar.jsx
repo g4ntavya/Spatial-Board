@@ -12,7 +12,7 @@ const LINKS = [
 
 // The notes web app (its own Vercel deployment). It owns the Google sign-in;
 // this button sends you there to log in. Set to your deployed URL for prod.
-const WEB_APP_URL = import.meta.env.VITE_WEB_APP_URL || 'http://localhost:3000';
+const WEB_APP_URL = import.meta.env.VITE_WEB_APP_URL || 'https://spatial-board-notes-gantavyas-projects.vercel.app';
 
 export default function Navbar() {
   const navRef = useRef(null);

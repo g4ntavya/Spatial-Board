@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { shouldAnimate } from '../lib/motion';
-import HeroCanvas from './HeroCanvas';
 import Magnetic from './Magnetic';
 import './Hero.css';
+
+const APP_URL = import.meta.env.VITE_WEB_APP_URL || 'https://spatial-board-notes-gantavyas-projects.vercel.app';
 
 export default function Hero() {
   const heroRef = useRef(null);
@@ -23,7 +24,6 @@ export default function Hero() {
 
   return (
     <header ref={heroRef} className="hero" id="top">
-      <HeroCanvas />
       <div className="container hero-inner">
         <div className="hero-tags">
           <span className="hero-tag eyebrow">SpatialBoard</span>
@@ -45,27 +45,32 @@ export default function Hero() {
         <div className="hero-ctas">
           <Magnetic>
             <a
+              href={APP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hero-cta hero-cta--primary hero-cta--lg"
+              id="hero-signin-btn"
+            >
+              Sign in
+            </a>
+          </Magnetic>
+          <Magnetic>
+            <a
               href="https://youtu.be/NDZyi6bChMY"
               target="_blank"
               rel="noopener noreferrer"
-              className="hero-cta hero-cta--primary"
+              className="hero-cta hero-cta--ghost"
               id="hero-demo-btn"
             >
               Watch the demo
             </a>
           </Magnetic>
-          <Magnetic>
-            <a
-              href="https://github.com/g4ntavya/Spatial-Board"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hero-cta hero-cta--ghost"
-              id="hero-source-btn"
-            >
-              View source
-            </a>
-          </Magnetic>
         </div>
+
+        <p className="hero-signup">
+          New to SpatialBoard?{' '}
+          <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="hero-signup-link">Sign up</a>
+        </p>
 
         <div className="hero-meta">
           <div className="hero-meta-item">
