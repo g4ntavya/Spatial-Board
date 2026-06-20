@@ -116,6 +116,10 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
   useEffect(() => {
     const el = canvasRef.current;
     if (!el || !selected?.svg) return;
+    // Inject the SVG ourselves (React doesn't own this subtree) so that later
+    // re-renders — related notes loading, pinning, menus — can never re-commit
+    // the markup and wipe the in-progress stroke animation.
+    el.innerHTML = selected.svg;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const paths = Array.from(el.querySelectorAll('path')) as SVGPathElement[];
     if (!paths.length) return;
@@ -463,7 +467,7 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
             </header>
 
             {selected.svg ? (
-              <div className="canvas" ref={canvasRef} dangerouslySetInnerHTML={{ __html: selected.svg }} />
+              <div className="canvas" ref={canvasRef} />
             ) : (
               <div className="canvas placeholder">{selected.status === 'pending' ? 'Processing…' : 'Handwriting not shared'}</div>
             )}
