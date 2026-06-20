@@ -44,6 +44,13 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
   const [shareFor, setShareFor] = useState<Note | null>(null);
   const [askOpen, setAskOpen] = useState(false);
 
+  // Folders: user-created empty folders live in localStorage (per space) until a
+  // note is moved into one, at which point it becomes a real Aurora category.
+  const [customFolders, setCustomFolders] = useState<string[]>([]);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [folderMenu, setFolderMenu] = useState<{ category: string; top: number; left: number } | null>(null);
+
   // ── Theme ──
   useEffect(() => {
     setTheme((localStorage.getItem('sb-theme') as 'light' | 'dark' | null) ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
@@ -55,6 +62,16 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
   useEffect(() => { localStorage.setItem('sb-sidebarW', String(sidebarW)); }, [sidebarW]);
   useEffect(() => { localStorage.setItem('sb-listW', String(listW)); }, [listW]);
   useEffect(() => { localStorage.setItem('sb-collapsed', collapsed ? '1' : '0'); }, [collapsed]);
+
+  // ── Custom folders (per space) ──
+  useEffect(() => {
+    if (!activeId) { setCustomFolders([]); return; }
+    try { setCustomFolders(JSON.parse(localStorage.getItem(`sb-folders-${activeId}`) || '[]')); }
+    catch { setCustomFolders([]); }
+  }, [activeId]);
+  useEffect(() => {
+    if (activeId) localStorage.setItem(`sb-folders-${activeId}`, JSON.stringify(customFolders));
+  }, [customFolders, activeId]);
 
   // ── Data loading ──
   const loadNotes = useCallback(async () => {
@@ -110,6 +127,37 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
     loadCategories();
   };
 
+  // Merge Aurora-derived categories with not-yet-used custom folders (n = 0).
+  const folderList = useMemo<CategoryCount[]>(() => {
+    const seen = new Set(categories.map((c) => c.category));
+    const extras = customFolders.filter((f) => !seen.has(f)).map((f) => ({ category: f, n: 0 }));
+    return [...categories, ...extras];
+  }, [categories, customFolders]);
+
+  const addFolder = () => {
+    const name = newFolderName.trim();
+    setNewFolderName('');
+    setCreatingFolder(false);
+    if (!name) return;
+    if (!folderList.some((c) => c.category === name)) setCustomFolders((p) => [...p, name]);
+    setSharedView(false);
+    setActiveCategory(name);
+  };
+
+  const deleteFolder = async (category: string) => {
+    if (!activeId) return;
+    const n = categories.find((c) => c.category === category)?.n ?? 0;
+    if (n > 0 && !window.confirm(`Delete “${category}” and its ${n} note${n === 1 ? '' : 's'}? This can’t be undone.`)) return;
+    setCustomFolders((p) => p.filter((f) => f !== category));
+    if (activeCategory === category) setActiveCategory(null);
+    if (n > 0) {
+      setNotes((prev) => prev.filter((nt) => (nt.category || 'Uncategorized') !== category));
+      if (selected && (selected.category || 'Uncategorized') === category) setSelected(null);
+      await fetch(`/api/categories?space=${activeId}&category=${encodeURIComponent(category)}`, { method: 'DELETE' });
+      loadCategories();
+    }
+  };
+
   const transcribe = async () => {
     if (!selected) return;
     setTranscribing(true);
@@ -153,7 +201,7 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
       note={n}
       active={selected?.id === n.id}
       readOnly={sharedView}
-      categories={categories}
+      categories={folderList}
       onOpen={() => openNote(n.id)}
       onDelete={() => deleteNote(n.id)}
       onMove={(c) => moveNote(n.id, c)}
@@ -187,13 +235,37 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
           </button>
         ))}
 
-        <div className="folders-label">Folders</div>
+        <div className="folders-label">
+          <span>Folders</span>
+          <button className="folder-add" onClick={() => setCreatingFolder(true)} aria-label="New folder" title="New folder"><PlusIcon /></button>
+        </div>
         <button className={`folder-row ${!sharedView && activeCategory === null ? 'active' : ''}`} onClick={() => { setSharedView(false); setActiveCategory(null); }}>
           <FolderIcon /> <span>All notes</span><span className="folder-count">{sharedView ? '' : notes.length}</span>
         </button>
-        {categories.map((c) => (
-          <button key={c.category} className={`folder-row ${!sharedView && activeCategory === c.category ? 'active' : ''}`} onClick={() => { setSharedView(false); setActiveCategory(c.category); }}>
-            <FolderIcon /> <span>{c.category}</span><span className="folder-count">{c.n}</span>
+        {creatingFolder && (
+          <div className="folder-new">
+            <FolderIcon />
+            <input
+              autoFocus
+              value={newFolderName}
+              placeholder="Folder name"
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onBlur={addFolder}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') addFolder();
+                if (e.key === 'Escape') { setNewFolderName(''); setCreatingFolder(false); }
+              }}
+            />
+          </div>
+        )}
+        {folderList.map((c) => (
+          <button
+            key={c.category}
+            className={`folder-row ${!sharedView && activeCategory === c.category ? 'active' : ''}`}
+            onClick={() => { setSharedView(false); setActiveCategory(c.category); }}
+            onContextMenu={(e) => { e.preventDefault(); setFolderMenu({ category: c.category, top: clamp(e.clientY, 8, window.innerHeight - 90), left: clamp(e.clientX, 8, window.innerWidth - 230) }); }}
+          >
+            <FolderIcon /> <span>{c.category}</span><span className="folder-count">{c.n || ''}</span>
           </button>
         ))}
 
@@ -307,6 +379,18 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
           <div className="empty">Select a note</div>
         )}
       </main>
+
+      {folderMenu && (
+        <>
+          <div className="menu-backdrop" onClick={() => setFolderMenu(null)} onContextMenu={(e) => { e.preventDefault(); setFolderMenu(null); }} />
+          <div className="kebab-popover" style={{ top: folderMenu.top, left: folderMenu.left }} onClick={(e) => e.stopPropagation()}>
+            <div className="menu-label">{folderMenu.category}</div>
+            <button className="menu-item danger" onClick={() => { const c = folderMenu.category; setFolderMenu(null); deleteFolder(c); }}>
+              <TrashIcon /> Delete folder &amp; notes
+            </button>
+          </div>
+        </>
+      )}
 
       {shareFor && <ShareDialog note={shareFor} onClose={() => setShareFor(null)} />}
       {askOpen && <AskDialog onClose={() => setAskOpen(false)} onOpenNote={(id) => { setAskOpen(false); openNote(id); }} />}
@@ -422,6 +506,7 @@ const ShareIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="n
 const SparkIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z" /></svg>);
 const CollapseIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 6l-6 6 6 6" /></svg>);
 const ExpandIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>);
+const PlusIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>);
 
 // A note card with an Apple-style ⋯ menu (Move / Share / Delete). The menu is a
 // fixed-position popover anchored to the button, so it's never clipped.

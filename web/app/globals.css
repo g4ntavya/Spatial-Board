@@ -84,8 +84,22 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
 .folders-label {
+  display: flex; align-items: center; justify-content: space-between;
   font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--text-3); padding: 18px 8px 8px;
+}
+.folder-add {
+  display: grid; place-items: center; width: 22px; height: 22px; margin: -4px -4px -4px 0;
+  border-radius: 6px; color: var(--text-3); transition: background 0.15s, color 0.15s;
+}
+.folder-add:hover { background: var(--hover); color: var(--accent); }
+.folder-new {
+  display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px;
+}
+.folder-new svg { color: var(--accent); flex-shrink: 0; }
+.folder-new input {
+  flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 13.5px; font-family: inherit;
 }
 .folder-row {
   display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
