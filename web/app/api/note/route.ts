@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   try {
     const rows = await query(
-      `SELECT n.id::text AS id, n.title, n.category, n.ocr_text, n.svg, n.status, n.updated_at::text AS updated_at,
+      `SELECT n.id::text AS id, n.title, n.category, n.note_type, n.ocr_text, n.svg, n.status, n.updated_at::text AS updated_at,
               (n.space_id IN (SELECT id FROM spaces WHERE user_id = :uid::uuid)) AS owned,
               sh.mode AS share_mode
          FROM notes n
@@ -41,13 +41,13 @@ export async function GET(req: Request) {
   }
 }
 
-// PATCH /api/note  { id, category?, title?, pinned? } — move/rename/pin.
+// PATCH /api/note  { id, category?, title?, pinned?, ocr_text? } — move/rename/pin/edit.
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.email) return Response.json({ error: 'unauthorized' }, { status: 401 });
   const uid = userIdFromEmail(session.user.email);
 
-  let body: { id?: string; category?: string; title?: string; pinned?: boolean } = {};
+  let body: { id?: string; category?: string; title?: string; pinned?: boolean; ocr_text?: string } = {};
   try { body = await req.json(); } catch { /* ignore */ }
   if (!body.id) return Response.json({ error: 'id required' }, { status: 400 });
 
@@ -56,6 +56,8 @@ export async function PATCH(req: Request) {
   if (typeof body.category === 'string') { sets.push('category = :category'); params.push(str('category', body.category)); }
   if (typeof body.title === 'string') { sets.push('title = :title'); params.push(str('title', body.title)); }
   if (typeof body.pinned === 'boolean') { sets.push('pinned = :pinned'); params.push({ name: 'pinned', value: { booleanValue: body.pinned } }); }
+  // Checkbox toggles persist by rewriting the markdown checklist in ocr_text.
+  if (typeof body.ocr_text === 'string') { sets.push('ocr_text = :ocr_text'); params.push(str('ocr_text', body.ocr_text)); }
   if (!sets.length) return Response.json({ error: 'nothing to update' }, { status: 400 });
 
   try {

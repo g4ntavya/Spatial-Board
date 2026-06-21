@@ -33,7 +33,8 @@ export async function POST(req: Request) {
   if (!owned.length) return Response.json({ error: 'not found' }, { status: 404 });
 
   await query(`UPDATE notes SET status = 'pending' WHERE id = :id::uuid`, [str('id', id)]);
-  await sqs.send(new SendMessageCommand({ QueueUrl: process.env.NOTES_QUEUE_URL, MessageBody: JSON.stringify({ noteId: id }) }));
+  // manual: re-OCR/split this note in place, but don't auto-merge it into others.
+  await sqs.send(new SendMessageCommand({ QueueUrl: process.env.NOTES_QUEUE_URL, MessageBody: JSON.stringify({ noteId: id, manual: true }) }));
 
   return Response.json({ status: 'queued' }, { status: 202 });
 }

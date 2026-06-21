@@ -42,9 +42,10 @@ CREATE TABLE IF NOT EXISTS notes (
     id            uuid PRIMARY KEY,
     space_id      uuid NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
     folder_id     uuid REFERENCES folders(id) ON DELETE SET NULL,  -- null = free in world
-    title         text,                       -- Bedrock Claude-generated
+    title         text,                       -- topic name, e.g. "Newton's Laws"
     ocr_text      text,                        -- Bedrock OCR
-    category      text,                        -- Bedrock Claude-assigned
+    category      text,                        -- SUBJECT / folder, e.g. "Physics" (AI-assigned or app folder)
+    note_type     text,                        -- rendering type: todo | math | code | idea | text | diagram
     svg           text,                        -- projected handwriting (2D)
     search_vector tsvector,                    -- keyword search
     embedding     vector(1024),                -- Titan v2 embedding, semantic search

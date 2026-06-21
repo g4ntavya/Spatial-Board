@@ -13,6 +13,7 @@ type Note = {
   updated_at: string;
   owner?: string | null; // set for shared notes
   pinned?: boolean;
+  note_type?: string | null; // rendering type: todo | math | code | idea | text | diagram
 };
 type Toast = { id: number; msg: string; action?: { label: string; fn: () => void } };
 type NoteDetail = Note & { svg: string | null; owned?: boolean };
@@ -300,6 +301,19 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
     setTranscribing(false);
   };
 
+  // To-do notes store their tasks as a markdown checklist in ocr_text; toggling a
+  // box rewrites that line and persists it.
+  const toggleCheck = (lineIdx: number) => {
+    if (!selected || selected.owned === false) return;
+    const lines = (selected.ocr_text ?? '').split('\n');
+    const m = lines[lineIdx]?.match(/^(\s*-\s*\[)( |x|X)(\].*)$/);
+    if (!m) return;
+    lines[lineIdx] = `${m[1]}${m[2] === ' ' ? 'x' : ' '}${m[3]}`;
+    const next = lines.join('\n');
+    setSelected((p) => (p ? { ...p, ocr_text: next } : p));
+    fetch('/api/note', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: selected.id, ocr_text: next }) });
+  };
+
   const goSpace = (id: string) => { setSharedView(false); setActiveId(id); setSelected(null); setActiveCategory(null); setSidebarOpen(false); };
 
   const visible = useMemo(
@@ -513,9 +527,11 @@ export default function Workspace({ spaces, dbError, userEmail }: { spaces: Spac
                     </button>
                   )}
                 </div>
-                {selected.ocr_text?.trim()
-                  ? <p>{selected.ocr_text}</p>
-                  : <p className="muted">{transcribing ? 'Reading your handwriting…' : 'Not transcribed yet — convert your handwriting to clean text.'}</p>}
+                {selected.ocr_text?.trim() ? (
+                  <Transcript text={selected.ocr_text} noteType={selected.note_type} readOnly={selected.owned === false} onToggle={toggleCheck} />
+                ) : (
+                  <p className="muted">{transcribing ? 'Reading your handwriting…' : 'Not transcribed yet — convert your handwriting to clean text.'}</p>
+                )}
               </section>
             )}
 
@@ -717,6 +733,72 @@ const MenuIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="no
 const BackIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 6l-6 6 6 6" /></svg>);
 const SearchIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>);
 const PinIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3-1-6z" /></svg>);
+const CheckIcon = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>);
+
+// Superscript-aware math line: turns `6^2` / `x^(n+1)` into real <sup> nodes.
+function mathNodes(line: string) {
+  const out: React.ReactNode[] = [];
+  const re = /\^(\{[^}]+\}|\([^)]+\)|[0-9a-zA-Z]+)/g;
+  let last = 0, k = 0, m: RegExpExecArray | null;
+  while ((m = re.exec(line))) {
+    if (m.index > last) out.push(line.slice(last, m.index));
+    out.push(<sup key={k++}>{m[1].replace(/[(){}]/g, '')}</sup>);
+    last = m.index + m[0].length;
+  }
+  if (last < line.length) out.push(line.slice(last));
+  return out;
+}
+
+// Renders the transcription with a designed treatment per note type: to-do →
+// interactive checkboxes, math → equation card, code → code block, idea →
+// callout, everything else → clean prose.
+function Transcript({ text, noteType, readOnly, onToggle }: {
+  text: string; noteType?: string | null; readOnly?: boolean; onToggle: (lineIdx: number) => void;
+}) {
+  const lines = text.split('\n');
+
+  if (noteType === 'todo' || /(^|\n)\s*-\s*\[( |x|X)\]/.test(text)) {
+    return (
+      <ul className="todo-list">
+        {lines.map((line, i) => {
+          const m = line.match(/^\s*-\s*\[( |x|X)\]\s*(.*)$/);
+          if (!m) return line.trim() ? <p key={i} className="todo-aside">{line}</p> : null;
+          const checked = m[1] !== ' ';
+          return (
+            <li key={i} className={`todo-item ${checked ? 'done' : ''}`}>
+              <button type="button" className="todo-check" role="checkbox" aria-checked={checked} onClick={() => onToggle(i)} disabled={readOnly}>
+                {checked && <CheckIcon />}
+              </button>
+              <span>{m[2]}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
+  if (noteType === 'math') {
+    return (
+      <div className="eq-block">
+        {lines.filter((l) => l.trim()).map((l, i) => <div key={i} className="eq-line">{mathNodes(l)}</div>)}
+      </div>
+    );
+  }
+
+  if (noteType === 'code') {
+    return <pre className="code-block"><code>{text}</code></pre>;
+  }
+
+  if (noteType === 'idea') {
+    return (
+      <div className="idea-callout">
+        {lines.filter((l) => l.trim()).map((l, i) => <p key={i}>{l}</p>)}
+      </div>
+    );
+  }
+
+  return <p>{text}</p>;
+}
 const PinFillIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 3h6l-1 6 3 3H7l3-3-1-6z" /><rect x="11" y="15" width="2" height="6" rx="1" /></svg>);
 
 // ── ⌘K command palette ──

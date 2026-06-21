@@ -234,6 +234,36 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .transcript p { font-size: 15.5px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
 .transcript p.muted { color: var(--text-3); }
 
+/* Interactive to-do checklist (rendered when the transcription is a checklist). */
+.todo-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.todo-item { display: flex; align-items: flex-start; gap: 11px; padding: 7px 9px; border-radius: 10px; transition: background 0.15s; }
+.todo-item:hover { background: var(--hover); }
+.todo-item > span { font-size: 15.5px; line-height: 1.5; color: var(--text); padding-top: 1px; }
+.todo-item.done > span { color: var(--text-3); text-decoration: line-through; }
+.todo-check {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px; border: 1.8px solid var(--line);
+  display: grid; place-items: center; color: #fff; background: var(--bg);
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+}
+.todo-check:hover { border-color: var(--accent); }
+.todo-check:active { transform: scale(0.9); }
+.todo-item.done .todo-check { background: var(--accent); border-color: var(--accent); }
+.todo-check:disabled { cursor: default; opacity: 0.6; }
+.todo-aside { font-size: 15.5px; line-height: 1.6; color: var(--text-2); padding: 4px 9px; }
+
+/* Math → equation card with real superscripts */
+.eq-block { display: flex; flex-direction: column; gap: 12px; padding: 22px 24px; background: var(--tag-bg); border: 1px solid var(--line); border-radius: 14px; }
+.eq-line { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 23px; letter-spacing: 0.01em; color: var(--text); }
+.eq-line sup { font-size: 0.6em; vertical-align: super; line-height: 0; }
+
+/* Code → monospace block */
+.code-block { background: var(--tag-bg); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; overflow-x: auto; }
+.code-block code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13.5px; line-height: 1.65; color: var(--text); white-space: pre; }
+
+/* Idea → accent callout */
+.idea-callout { border-left: 3px solid var(--accent); background: var(--select); border-radius: 0 12px 12px 0; padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; }
+.idea-callout p { font-size: 15.5px; line-height: 1.6; color: var(--text); }
+
 .related { margin-top: 36px; }
 .related-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 .related-card {
