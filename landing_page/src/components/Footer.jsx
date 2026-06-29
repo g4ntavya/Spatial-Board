@@ -54,7 +54,7 @@ export default function Footer() {
           <nav className="footer-col footer-nav">
             <span className="footer-nav-label">Elsewhere</span>
             <a href="https://github.com/g4ntavya/Spatial-Board" target="_blank" rel="noopener noreferrer" className="footer-nav-link" id="footer-github-link">GitHub</a>
-            <a href="https://youtu.be/NDZyi6bChMY" target="_blank" rel="noopener noreferrer" className="footer-nav-link" id="footer-video-link">Demo video</a>
+            <a href="https://youtu.be/sIWVNEsMZm8" target="_blank" rel="noopener noreferrer" className="footer-nav-link" id="footer-video-link">Demo video</a>
             <a href="https://x.com/g4ntavya" target="_blank" rel="noopener noreferrer" className="footer-nav-link" id="footer-x-link">@g4ntavya</a>
           </nav>
         </div>

@@ -56,7 +56,7 @@ export default function Hero() {
           </Magnetic>
           <Magnetic>
             <a
-              href="https://youtu.be/NDZyi6bChMY"
+              href="https://youtu.be/sIWVNEsMZm8"
               target="_blank"
               rel="noopener noreferrer"
               className="hero-cta hero-cta--ghost"

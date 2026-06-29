@@ -14,7 +14,7 @@ you think. The web app is where it all gets remembered.
 | **Live web app** | https://spatial-board-notes.vercel.app |
 | **Demo email** | `demo@spatialboard.app` |
 | **Demo password** | `spatial-demo-2026` |
-| **Demo video (under 3 min)** | https://youtu.be/NDZyi6bChMY |
+| **Demo video (under 3 min)** | https://youtu.be/sIWVNEsMZm8 |
 | **AWS database** | Amazon **Aurora Serverless v2 (PostgreSQL)** + `pgvector` |
 | **Frontend** | Next.js (App Router) on **Vercel** |
 

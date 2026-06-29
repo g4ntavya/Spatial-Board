@@ -64,7 +64,7 @@ export default function Notice() {
 
         <p className="idea-reveal idea-foot">
           SpatialBoard is currently distributed as an interactive demo and open
-          source. <a href="https://youtu.be/NDZyi6bChMY" target="_blank" rel="noopener noreferrer" id="idea-demo-link">Watch the demo</a> or
+          source. <a href="https://youtu.be/sIWVNEsMZm8" target="_blank" rel="noopener noreferrer" id="idea-demo-link">Watch the demo</a> or
           <a href="https://github.com/g4ntavya/Spatial-Board" target="_blank" rel="noopener noreferrer" id="idea-source-link"> read the source</a>.
         </p>
       </div>

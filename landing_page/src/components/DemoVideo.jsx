@@ -58,7 +58,7 @@ export default function DemoVideo() {
 
         <div className="demo-embed">
           <iframe
-            src="https://www.youtube.com/embed/NDZyi6bChMY"
+            src="https://www.youtube.com/embed/sIWVNEsMZm8"
             title="SpatialBoard Demo Video"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
