@@ -28,12 +28,31 @@ const str = (name, v) =>
 const num = (name, v) =>
   v == null ? { name, value: { isNull: true } } : { name, value: { doubleValue: Number(v) } };
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Aurora scales to zero when idle, so the first statement of a sync after a
+// pause throws DatabaseResumingException for ~15-25s. Retry through it so a
+// cold cluster costs the sync some latency instead of failing the upload.
+const isResuming = (err) =>
+  err?.name === 'DatabaseResumingException' || /resuming after being auto-paused/i.test(err?.message ?? '');
+
+async function sendWithResume(cmd) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await rds.send(cmd);
+    } catch (err) {
+      if (!isResuming(err) || attempt >= 8) throw err;
+      await sleep(Math.min(1000 * attempt, 4000)); // 1s,2s,3s,4s,4s… ≈ resume time
+    }
+  }
+}
+
 const exec = (sql, parameters = []) =>
-  rds.send(new ExecuteStatementCommand({ resourceArn: CLUSTER_ARN, secretArn: SECRET_ARN, database: DB_NAME, sql, parameters }));
+  sendWithResume(new ExecuteStatementCommand({ resourceArn: CLUSTER_ARN, secretArn: SECRET_ARN, database: DB_NAME, sql, parameters }));
 
 async function batch(sql, parameterSets) {
   for (let i = 0; i < parameterSets.length; i += 100) {
-    await rds.send(
+    await sendWithResume(
       new BatchExecuteStatementCommand({
         resourceArn: CLUSTER_ARN,
         secretArn: SECRET_ARN,

@@ -18,8 +18,25 @@ const rds = new RDSDataClient({});
 const bedrock = new BedrockRuntimeClient({});
 const { CLUSTER_ARN, SECRET_ARN, DB_NAME, OCR_MODEL_ID, EMBED_MODEL_ID } = process.env;
 
-const exec = (sql, parameters = []) =>
-  rds.send(new ExecuteStatementCommand({ resourceArn: CLUSTER_ARN, secretArn: SECRET_ARN, database: DB_NAME, sql, parameters }));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Aurora scales to zero when idle. A queued note can arrive while the cluster is
+// paused, so retry through the ~15-25s DatabaseResumingException rather than
+// burning an SQS receive (3 strikes → DLQ) on a cold start.
+const isResuming = (err) =>
+  err?.name === 'DatabaseResumingException' || /resuming after being auto-paused/i.test(err?.message ?? '');
+
+async function exec(sql, parameters = []) {
+  const cmd = new ExecuteStatementCommand({ resourceArn: CLUSTER_ARN, secretArn: SECRET_ARN, database: DB_NAME, sql, parameters });
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await rds.send(cmd);
+    } catch (err) {
+      if (!isResuming(err) || attempt >= 8) throw err;
+      await sleep(Math.min(1000 * attempt, 4000)); // 1s,2s,3s,4s,4s… ≈ resume time
+    }
+  }
+}
 
 // ── 2D projection (drop Z; AR Y is up, so flip for screen space) ─────────────
 function project(strokes) {

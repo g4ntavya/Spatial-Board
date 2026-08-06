@@ -10,8 +10,25 @@ import { scryptSync, randomBytes, timingSafeEqual, createHmac, createHash } from
 const rds = new RDSDataClient({});
 const { CLUSTER_ARN, SECRET_ARN, DB_NAME, AUTH_JWT_SECRET } = process.env;
 
-const exec = (sql, parameters = []) =>
-  rds.send(new ExecuteStatementCommand({ resourceArn: CLUSTER_ARN, secretArn: SECRET_ARN, database: DB_NAME, sql, parameters }));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Aurora scales to zero when idle, so the first statement after a pause throws
+// DatabaseResumingException for ~15-25s. Retry through it — a login on a cold
+// cluster should be slow, not a 500. Budget stays under the 30s Lambda timeout.
+const isResuming = (err) =>
+  err?.name === 'DatabaseResumingException' || /resuming after being auto-paused/i.test(err?.message ?? '');
+
+async function exec(sql, parameters = []) {
+  const cmd = new ExecuteStatementCommand({ resourceArn: CLUSTER_ARN, secretArn: SECRET_ARN, database: DB_NAME, sql, parameters });
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await rds.send(cmd);
+    } catch (err) {
+      if (!isResuming(err) || attempt >= 8) throw err;
+      await sleep(Math.min(1000 * attempt, 3000)); // 1s,2s,3s,3s… ≈ resume time
+    }
+  }
+}
 
 // userId = sha1("user|"+email) — identical to ingest + web/lib/identity.ts
 function uuidFrom(...parts) {

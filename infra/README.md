@@ -41,7 +41,7 @@ infra/
 - [ ] CDK bootstrap (`cdk bootstrap`)
 - [ ] **data-stack**: Aurora Serverless v2 PostgreSQL cluster
   - [ ] Enable **RDS Data API** + Secrets Manager credential
-  - [ ] Min/max ACU set low (0.5–2) for cost
+  - [ ] Min/max ACU set low (0–2) for cost — min 0 auto-pauses when idle
 - [ ] Apply [db/schema.sql](db/schema.sql) (psql or Data API `BatchExecuteStatement`)
   - [ ] `CREATE EXTENSION vector;` succeeds
 - [ ] **ingest-stack**: HTTP API + Lambda + SQS queue
@@ -54,7 +54,7 @@ infra/
 |---|---|---|
 | Aurora | Serverless v2, Postgres 16+ | pgvector available |
 | Aurora | Data API: **enabled** | HTTP access; no pooling from Vercel |
-| Aurora | ACU 0.5 min / 2 max | hackathon-scale cost control |
+| Aurora | ACU 0 min / 2 max, auto-pause 10 min | scales to zero — no compute cost while idle |
 | Bedrock | `amazon.titan-embed-text-v2:0` | 1024-dim embeddings |
 | Bedrock | Claude (latest) | titles / categories / OCR cleanup |
 | SQS | standard queue, DLQ after 3 | decouple ingest from processing |

@@ -8,9 +8,13 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
  * Aurora Serverless v2 PostgreSQL + pgvector, reachable over the RDS Data API.
  *
  * Cost design:
- *  - serverlessV2MinCapacity: 0.5  → the cluster stays warm (never auto-pauses), so
- *    visits during the judging window never pay the ~15-25s cold-start resume. Costs
- *    ~$0.06/hr (~$43/mo) while held; set back to 0 after judging to scale to zero.
+ *  - serverlessV2MinCapacity: 0 → the cluster auto-pauses after
+ *    serverlessV2AutoPauseDuration of no connections and bills $0/hr for compute
+ *    while idle (storage is still billed). The first query after a pause raises
+ *    DatabaseResumingException for ~15-25s; every Data API caller retries through
+ *    that (web/lib/db.ts, the ingest/process/auth Lambdas, infra/db/apply.mjs),
+ *    so a resume shows up as a slow first request, not an error.
+ *    Set min back to 0.5 to hold the cluster warm (~$0.06/hr, ~$43/mo).
  *  - VPC with natGateways: 0 + isolated subnets → no ~$32/mo NAT gateway. The Data
  *    API is an AWS service endpoint, so nothing in the VPC needs outbound internet.
  */
@@ -38,8 +42,9 @@ export class DataStack extends cdk.Stack {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       defaultDatabaseName: this.databaseName,
       enableDataApi: true,
-      serverlessV2MinCapacity: 0.5, // stay warm — no cold-start wait during judging (set to 0 to scale-to-zero after)
+      serverlessV2MinCapacity: 0, // scale to zero when idle
       serverlessV2MaxCapacity: 2, // hackathon ceiling
+      serverlessV2AutoPauseDuration: cdk.Duration.minutes(10), // idle time before pausing (min 5m, max 24h)
       writer: rds.ClusterInstance.serverlessV2('writer'),
       credentials: rds.Credentials.fromGeneratedSecret('postgres', {
         secretName: 'spatialboard/db',
